@@ -144,7 +144,7 @@ MeshCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6561977984014106555}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: ecbac00b2542b4afeb5a4fa97fbb1b2e, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -210,7 +210,7 @@ Rigidbody:
   m_GameObject: {fileID: 6561977984014106555}
   serializedVersion: 4
   m_Mass: 1
-  m_Drag: 0
+  m_Drag: 0.5
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
@@ -226,7 +226,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!114 &5322826866256483978
 MonoBehaviour:
@@ -240,3 +240,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1514f75003227a3c8da7fa5e359fd5e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  rigidbody: {fileID: 5295224033816127001}
+  camera: {fileID: 858167966322496468}
+  Right: 1
+  Left: 1
+  moveSpeed: 1
+  mouseSensitivity: 3
+  deadZone: -5
