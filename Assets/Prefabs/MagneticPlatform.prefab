@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MagneticPlatform
       objectReference: {fileID: 0}
+    - target: {fileID: 3375677972783629276, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 5068368233405570414, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -59,5 +63,28 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3375677972783629276, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1810355204045074203}
   m_SourcePrefab: {fileID: 100100000, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
+--- !u!1 &1121964642906946055 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3375677972783629276, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
+  m_PrefabInstance: {fileID: 2398964904693676507}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1810355204045074203
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1121964642906946055}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 629daf749cb35449caec3ac7a30a2f22, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  attractionStrength: 20
+  activationDistance: 2
+  maxAttachAngle: 80

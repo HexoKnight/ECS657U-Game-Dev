@@ -9,11 +9,11 @@ public class PlayerMagnetController : MonoBehaviour
     public KeyCode stickKey = KeyCode.E;
     public KeyCode detachKey = KeyCode.Space;
 
-    Rigidbody rb;
+    PlayerController pc;
     bool isStuck = false;
     Vector3 surfaceNormal;
 
-    void Start() { rb = GetComponent<Rigidbody>(); }
+    void Start() { pc = GetComponent<PlayerController>(); }
 
     void Update()
     {
@@ -32,7 +32,6 @@ public class PlayerMagnetController : MonoBehaviour
     {
         if (isStuck)
         {
-            rb.AddForce(-surfaceNormal * stickForce, ForceMode.Acceleration);
         }
     }
 
@@ -42,8 +41,7 @@ public class PlayerMagnetController : MonoBehaviour
         {
             transform.position = hit.point + hit.normal * 0.5f;
             surfaceNormal = hit.normal;
-            rb.useGravity = false;
-            rb.velocity = Vector3.zero;
+            pc.useGravity = false;
             isStuck = true;
         }
     }
@@ -51,6 +49,6 @@ public class PlayerMagnetController : MonoBehaviour
     void Detach()
     {
         isStuck = false;
-        rb.useGravity = true;
+        pc.useGravity = true;
     }
 }
