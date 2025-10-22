@@ -100,3 +100,6 @@ InitTestScene*.unity*
 
 # for personal testing so should not be committed
 /[Aa]ssets/Scenes/TestingScene.unity*
+
+# generic
+.DS_Store
