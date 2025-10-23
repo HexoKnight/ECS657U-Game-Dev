@@ -1,84 +1,58 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
-public class WallStickController : MonoBehaviour
+[RequireComponent(typeof(Rigidbody))]
+public class PlayerMagnetController : MonoBehaviour
 {
-    [Header("Detection")]
-    [Tooltip("Layer(s) that count as magnetic/stickable surfaces")]
-    public LayerMask magneticLayers;
-    [Tooltip("How far to search in every direction")]
-    public float detectRadius = 2.5f;
-    [Tooltip("Max angle (deg) between surface normal and world up to allow attach (90 = any wall, 180 = ceilings too)")]
-    [Range(0f, 180f)] public float maxAttachAngleFromUp = 120f;
-    [Tooltip("Sphere radius for proximity checks")]
-    public float probeRadius = 0.35f;
-
-    [Header("Sticking")]
-    [Tooltip("Hold to auto-stick when near; set false to require toggle key")]
-    public bool autoStickWhenNear = true;
-    [Tooltip("Extra pull to keep you on the surface")]
-    public float stickAcceleration = 40f;
-    [Tooltip("How fast you rotate to align with the surface")]
-    public float rotationLerp = 10f;
-    [Tooltip("How far we offset from the hit point when snapping on")]
-    public float snapOffset = 0.15f;
-    [Tooltip("Gravity scale while stuck (0 = neutral buoyancy, 1 = normal gravity)")]
-    [Range(0f, 1.5f)] public float stuckGravityScale = 0.25f;
+    [Header("Magnet Settings")]
+    public LayerMask magneticLayer;       // Layer for magnetic surfaces
+    public float senseRadius = 3f;        // Radius for detecting surfaces
+    public float stickForce = 50f;        // Strength of the magnetic pull
+    public float rotationSpeed = 8f;      // Speed at which the player rotates to align with the surface
 
     [Header("Controls")]
-    public KeyCode toggleStickKey = KeyCode.E;
-    public KeyCode detachKey = KeyCode.Space;
+    public KeyCode stickKey = KeyCode.E;  // Key to attach/detach
+    public KeyCode detachKey = KeyCode.Space; // Key to quickly detach
 
-    [Header("Debug")]
-    public bool drawGizmos = true;
+    private Rigidbody rb;
+    private bool isStuck = false;
+    private Vector3 surfaceNormal;
+    private Transform playerCamera;
 
-    Rigidbody rb;
-    CapsuleCollider capsule;
-    bool isStuck;
-    Vector3 surfaceNormal = Vector3.up;
-    float defaultGravityY;
-    float capsuleHalfHeight;
-
-    void Awake()
+    void Start()
     {
         rb = GetComponent<Rigidbody>();
-        rb.useGravity = true;
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
-
-        capsule = GetComponent<CapsuleCollider>();
-        capsuleHalfHeight = Mathf.Max(0.1f, capsule.height * 0.5f - capsule.radius);
-
-        defaultGravityY = Physics.gravity.y;
+        rb.useGravity = true; // Ensure gravity is on by default
+        playerCamera = Camera.main.transform; // Assign the main camera
     }
 
     void Update()
     {
-        // Toggle stick
-        if (Input.GetKeyDown(toggleStickKey))
+        // Try to attach or detach with the stick key
+        if (Input.GetKeyDown(stickKey))
         {
-            if (isStuck) Detach();
-            else TryAttachNearby();
+            if (!isStuck)
+                TryAttach(); // Try to attach to a surface
+            else
+                Detach();   // Detach from the surface
         }
 
-        // Quick detach (jump)
+        // Detach if the detach key is pressed
         if (isStuck && Input.GetKeyDown(detachKey))
-            Detach();
+        {
+            Detach();  // Detach the player from the surface
+        }
 
-        // Auto-stick when close enough
-        if (!isStuck && autoStickWhenNear)
-            TryAttachNearby();
-
-        // Smoothly align to surface while stuck
+        // Smoothly rotate to align with the surface while stuck
         if (isStuck)
         {
-            // Align 'up' with the surface normal, keep forward projected onto surface
-            Vector3 desiredUp = surfaceNormal;
-            Vector3 fwdProjected = Vector3.ProjectOnPlane(transform.forward, desiredUp).normalized;
-            if (fwdProjected.sqrMagnitude < 0.0001f)
-                fwdProjected = Vector3.ProjectOnPlane(transform.right, desiredUp).normalized;
+            // Rotate player to align with the wall's surface
+            Quaternion targetRotation = Quaternion.LookRotation(Vector3.ProjectOnPlane(transform.forward, surfaceNormal), surfaceNormal);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * rotationSpeed);
 
-            Quaternion targetRot = Quaternion.LookRotation(fwdProjected, desiredUp);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationLerp * Time.deltaTime);
+            // Move along the wall, forward and backward, based on input
+            float horizontalInput = Input.GetAxis("Horizontal");  // Left/Right movement along the wall
+            Vector3 moveDirection = Vector3.Cross(surfaceNormal, Vector3.up).normalized; // Determine movement direction
+            rb.AddForce(moveDirection * horizontalInput * stickForce, ForceMode.Force);  // Apply movement force
         }
     }
 
@@ -86,83 +60,33 @@ public class WallStickController : MonoBehaviour
     {
         if (isStuck)
         {
-            // Light pull toward the surface
-            rb.AddForce(-surfaceNormal * stickAcceleration, ForceMode.Acceleration);
-
-            // Reduce effective gravity for “underwater/floaty” feel
-            Vector3 g = Physics.gravity;
-            rb.AddForce(new Vector3(0f, (stuckGravityScale - 1f) * g.y, 0f), ForceMode.Acceleration);
-
-            // Prevent drift away from the surface by removing velocity along the normal (optional)
-            float vn = Vector3.Dot(rb.velocity, surfaceNormal);
-            if (vn > 0f) // moving away from wall
-                rb.velocity -= surfaceNormal * vn;
+            // Apply constant force to keep the player stuck to the wall
+            rb.AddForce(-surfaceNormal * stickForce, ForceMode.Acceleration);
         }
     }
 
-    void TryAttachNearby()
+    void TryAttach()
     {
-        // Probe around the capsule’s mid point
-        Vector3 origin = transform.position + transform.up * capsuleHalfHeight;
-
-        // Find the closest magnetic collider
-        Collider[] hits = Physics.OverlapSphere(origin, detectRadius, magneticLayers, QueryTriggerInteraction.Ignore);
-        if (hits.Length == 0) return;
-
-        Collider best = null;
-        float bestDist = float.MaxValue;
-        Vector3 bestPoint = Vector3.zero;
-        Vector3 bestNormal = Vector3.up;
-
-        foreach (var col in hits)
+        // Cast a ray to detect a nearby magnetic surface in front of the player
+        if (Physics.Raycast(transform.position, transform.forward, out RaycastHit hit, senseRadius, magneticLayer))
         {
-            Vector3 closest = col.ClosestPoint(origin);
-            float d = Vector3.Distance(origin, closest);
-            if (d < bestDist)
-            {
-                // Get a reliable normal by raycasting from slightly off the surface
-                Vector3 dir = (closest - origin).normalized;
-                if (Physics.SphereCast(origin, probeRadius, dir, out RaycastHit h, detectRadius + 0.5f, magneticLayers, QueryTriggerInteraction.Ignore))
-                {
-                    best = col;
-                    bestDist = h.distance;
-                    bestPoint = h.point;
-                    bestNormal = h.normal;
-                }
-            }
+            surfaceNormal = hit.normal;
+            rb.useGravity = false; // Disable gravity while stuck
+            rb.velocity = Vector3.zero; // Stop any current movement
+            isStuck = true;
+
+            // Position the player slightly away from the surface to avoid overlap
+            transform.position = hit.point + hit.normal * 0.5f;
+
+            // Rotate the camera to follow the player as they stick to the wall
+            playerCamera.RotateAround(transform.position, Vector3.up, 90); // Rotate camera to follow player
         }
-
-        if (best == null) return;
-
-        // Angle gate (don’t attach if the surface normal is too “downward” relative to world up, unless allowed)
-        float angleFromUp = Vector3.Angle(bestNormal, Vector3.up);
-        if (angleFromUp > maxAttachAngleFromUp) return;
-
-        // Attach
-        surfaceNormal = bestNormal;
-        isStuck = true;
-        rb.useGravity = true; // we mod gravity via forces to keep physics stable
-        rb.velocity = Vector3.zero;
-
-        // Snap onto the surface with a small offset to avoid clipping
-        transform.position = bestPoint + bestNormal * snapOffset;
     }
 
     void Detach()
     {
         isStuck = false;
-        // restore normal gravity behavior; FixedUpdate adds nothing when not stuck
-    }
-
-    void OnDrawGizmosSelected()
-    {
-        if (!drawGizmos) return;
-
-        Gizmos.color = Color.cyan;
-        Vector3 origin = transform.position + transform.up * (capsule ? capsuleHalfHeight : 0.5f);
-        Gizmos.DrawWireSphere(origin, detectRadius);
-
-        Gizmos.color = Color.magenta;
-        Gizmos.DrawRay(transform.position, surfaceNormal);
+        rb.useGravity = true; // Re-enable gravity
+        playerCamera.RotateAround(transform.position, Vector3.up, -90); // Rotate camera back
     }
 }
