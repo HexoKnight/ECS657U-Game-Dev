@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.029152153, g: 0.0644456, b: 0.1269505, a: 1}
+  m_IndirectSpecularColor: {r: 0.02915475, g: 0.06445004, b: 0.12695631, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -174,7 +174,7 @@ MonoBehaviour:
   maxNormalChangeToDetach: 55
   alignToWorldUpOnDetach: 1
   cameraTarget: {fileID: 344489213}
-  lookSensitivity: {x: 1.2, y: 1}
+  lookSensitivity: {x: 100, y: -100}
   pitchLimits: {x: -80, y: 80}
   firstPersonController: {fileID: 47892380}
   debugLogging: 1
@@ -441,8 +441,6 @@ GameObject:
   - component: {fileID: 532141334}
   - component: {fileID: 532141333}
   - component: {fileID: 532141332}
-  - component: {fileID: 532141337}
-  - component: {fileID: 532141336}
   m_Layer: 3
   m_Name: Wall
   m_TagString: Untagged
@@ -491,7 +489,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 8d0fae7b693d2f186941eee60b2e54d4, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -536,30 +534,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &532141336
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 532141331}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 128cdcef3a6c49b499d541a5cde63536, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!114 &532141337
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 532141331}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 128cdcef3a6c49b499d541a5cde63536, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &585107211
 GameObject:
   m_ObjectHideFlags: 0
@@ -962,7 +936,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 8616685848737228371, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
       propertyPath: GroundLayers.m_Bits
-      value: 1
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 8616685848737228372, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
       propertyPath: m_Name
