@@ -1,0 +1,168 @@
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
+public class WallStickController : MonoBehaviour
+{
+    [Header("Detection")]
+    [Tooltip("Layer(s) that count as magnetic/stickable surfaces")]
+    public LayerMask magneticLayers;
+    [Tooltip("How far to search in every direction")]
+    public float detectRadius = 2.5f;
+    [Tooltip("Max angle (deg) between surface normal and world up to allow attach (90 = any wall, 180 = ceilings too)")]
+    [Range(0f, 180f)] public float maxAttachAngleFromUp = 120f;
+    [Tooltip("Sphere radius for proximity checks")]
+    public float probeRadius = 0.35f;
+
+    [Header("Sticking")]
+    [Tooltip("Hold to auto-stick when near; set false to require toggle key")]
+    public bool autoStickWhenNear = true;
+    [Tooltip("Extra pull to keep you on the surface")]
+    public float stickAcceleration = 40f;
+    [Tooltip("How fast you rotate to align with the surface")]
+    public float rotationLerp = 10f;
+    [Tooltip("How far we offset from the hit point when snapping on")]
+    public float snapOffset = 0.15f;
+    [Tooltip("Gravity scale while stuck (0 = neutral buoyancy, 1 = normal gravity)")]
+    [Range(0f, 1.5f)] public float stuckGravityScale = 0.25f;
+
+    [Header("Controls")]
+    public KeyCode toggleStickKey = KeyCode.E;
+    public KeyCode detachKey = KeyCode.Space;
+
+    [Header("Debug")]
+    public bool drawGizmos = true;
+
+    Rigidbody rb;
+    CapsuleCollider capsule;
+    bool isStuck;
+    Vector3 surfaceNormal = Vector3.up;
+    float defaultGravityY;
+    float capsuleHalfHeight;
+
+    void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        rb.useGravity = true;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+
+        capsule = GetComponent<CapsuleCollider>();
+        capsuleHalfHeight = Mathf.Max(0.1f, capsule.height * 0.5f - capsule.radius);
+
+        defaultGravityY = Physics.gravity.y;
+    }
+
+    void Update()
+    {
+        // Toggle stick
+        if (Input.GetKeyDown(toggleStickKey))
+        {
+            if (isStuck) Detach();
+            else TryAttachNearby();
+        }
+
+        // Quick detach (jump)
+        if (isStuck && Input.GetKeyDown(detachKey))
+            Detach();
+
+        // Auto-stick when close enough
+        if (!isStuck && autoStickWhenNear)
+            TryAttachNearby();
+
+        // Smoothly align to surface while stuck
+        if (isStuck)
+        {
+            // Align 'up' with the surface normal, keep forward projected onto surface
+            Vector3 desiredUp = surfaceNormal;
+            Vector3 fwdProjected = Vector3.ProjectOnPlane(transform.forward, desiredUp).normalized;
+            if (fwdProjected.sqrMagnitude < 0.0001f)
+                fwdProjected = Vector3.ProjectOnPlane(transform.right, desiredUp).normalized;
+
+            Quaternion targetRot = Quaternion.LookRotation(fwdProjected, desiredUp);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, rotationLerp * Time.deltaTime);
+        }
+    }
+
+    void FixedUpdate()
+    {
+        if (isStuck)
+        {
+            // Light pull toward the surface
+            rb.AddForce(-surfaceNormal * stickAcceleration, ForceMode.Acceleration);
+
+            // Reduce effective gravity for “underwater/floaty” feel
+            Vector3 g = Physics.gravity;
+            rb.AddForce(new Vector3(0f, (stuckGravityScale - 1f) * g.y, 0f), ForceMode.Acceleration);
+
+            // Prevent drift away from the surface by removing velocity along the normal (optional)
+            float vn = Vector3.Dot(rb.velocity, surfaceNormal);
+            if (vn > 0f) // moving away from wall
+                rb.velocity -= surfaceNormal * vn;
+        }
+    }
+
+    void TryAttachNearby()
+    {
+        // Probe around the capsule’s mid point
+        Vector3 origin = transform.position + transform.up * capsuleHalfHeight;
+
+        // Find the closest magnetic collider
+        Collider[] hits = Physics.OverlapSphere(origin, detectRadius, magneticLayers, QueryTriggerInteraction.Ignore);
+        if (hits.Length == 0) return;
+
+        Collider best = null;
+        float bestDist = float.MaxValue;
+        Vector3 bestPoint = Vector3.zero;
+        Vector3 bestNormal = Vector3.up;
+
+        foreach (var col in hits)
+        {
+            Vector3 closest = col.ClosestPoint(origin);
+            float d = Vector3.Distance(origin, closest);
+            if (d < bestDist)
+            {
+                // Get a reliable normal by raycasting from slightly off the surface
+                Vector3 dir = (closest - origin).normalized;
+                if (Physics.SphereCast(origin, probeRadius, dir, out RaycastHit h, detectRadius + 0.5f, magneticLayers, QueryTriggerInteraction.Ignore))
+                {
+                    best = col;
+                    bestDist = h.distance;
+                    bestPoint = h.point;
+                    bestNormal = h.normal;
+                }
+            }
+        }
+
+        if (best == null) return;
+
+        // Angle gate (don’t attach if the surface normal is too “downward” relative to world up, unless allowed)
+        float angleFromUp = Vector3.Angle(bestNormal, Vector3.up);
+        if (angleFromUp > maxAttachAngleFromUp) return;
+
+        // Attach
+        surfaceNormal = bestNormal;
+        isStuck = true;
+        rb.useGravity = true; // we mod gravity via forces to keep physics stable
+        rb.velocity = Vector3.zero;
+
+        // Snap onto the surface with a small offset to avoid clipping
+        transform.position = bestPoint + bestNormal * snapOffset;
+    }
+
+    void Detach()
+    {
+        isStuck = false;
+        // restore normal gravity behavior; FixedUpdate adds nothing when not stuck
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        if (!drawGizmos) return;
+
+        Gizmos.color = Color.cyan;
+        Vector3 origin = transform.position + transform.up * (capsule ? capsuleHalfHeight : 0.5f);
+        Gizmos.DrawWireSphere(origin, detectRadius);
+
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawRay(transform.position, surfaceNormal);
+    }
+}
