@@ -1,7 +1,7 @@
 using UnityEngine;
-using StarterAssets;
 
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(PlayerController))]
 public class MagnetWalker : MonoBehaviour
 {
     [Header("Activation")]
@@ -13,39 +13,39 @@ public class MagnetWalker : MonoBehaviour
 
     [Header("Robust surface detection")]
     public float detectRadius = 2.5f;
-    public float probeRadius  = 0.35f;
-    public bool  queriesHitBackfaces = true;
-    [Range(0,90)] public float minSurfaceTiltFromUp = 25f;
-    [Range(0,90)] public float maxAttachAngle = 80f;
+    public float probeRadius = 0.35f;
+    public bool queriesHitBackfaces = true;
+    [Range(0, 90)] public float minSurfaceTiltFromUp = 25f;
+    [Range(0, 90)] public float maxAttachAngle = 80f;
 
     [Header("Wall locomotion")]
-    public float wallMoveSpeed   = 4.5f;
-    public float stickForce      = 34f;
-    public float alignUpSlerp    = 12f;
-    public float inputSmoothing  = 12f;
-    public float snapOffset      = 0.12f;
+    public float wallMoveSpeed = 4.5f;
+    public float stickForce = 34f;
+    public float alignUpSlerp = 12f;
+    public float inputSmoothing = 12f;
+    public float snapOffset = 0.12f;
 
     [Header("Detach / stability")]
     [Tooltip("How long we can lose the wall before detaching (seconds).")]
     public float lostWallGrace = 0.25f;
-    [Range(0,90)] public float maxNormalChangeToDetach = 55f;
+    [Range(0, 90)] public float maxNormalChangeToDetach = 55f;
     public bool alignToWorldUpOnDetach = true;
 
     [Header("Camera (look)")]
-    public Transform cameraTarget; // auto from FPC
     public Vector2 lookSensitivity = new Vector2(1.2f, 1.0f);
-    public Vector2 pitchLimits     = new Vector2(-80f, 80f);
+    public Vector2 pitchLimits = new Vector2(-80f, 80f);
 
     [Header("References")]
-    public MonoBehaviour firstPersonController; // FirstPersonController
 
     [Header("Debug")]
     public bool debugLogging = true;
-    public bool drawGizmos   = true;
+    public bool drawGizmos = true;
 
     // ---- internals ----
-    private StarterAssetsInputs _inputs;
-    private CharacterController  _cc;
+    private PlayerInputs _inputs;
+    private CharacterController _cc;
+    private PlayerController _playerController;
+    private Transform _cameraTarget;
 
     private bool _magnetActive, _toggleLatch;
     private Vector2 _smoothedMove;
@@ -58,16 +58,11 @@ public class MagnetWalker : MonoBehaviour
 
     void Awake()
     {
-        _inputs = GetComponent<StarterAssetsInputs>();
-        _cc     = GetComponent<CharacterController>();
+        _inputs = GetComponent<PlayerInputs>();
+        _cc = GetComponent<CharacterController>();
 
-        if (firstPersonController == null)
-        {
-            var fpc = GetComponent<FirstPersonController>();
-            if (fpc) firstPersonController = fpc;
-        }
-        if (cameraTarget == null && firstPersonController is FirstPersonController fpcWithTarget && fpcWithTarget.CinemachineCameraTarget)
-            cameraTarget = fpcWithTarget.CinemachineCameraTarget.transform;
+        _playerController = GetComponent<PlayerController>();
+        _cameraTarget = _playerController.cinemachineCameraTarget.transform;
     }
 
     void Update()
@@ -78,7 +73,7 @@ public class MagnetWalker : MonoBehaviour
 
     private void HandleActivation()
     {
-        bool keyDown       = Input.GetKeyDown(attachKey);
+        bool keyDown = Input.GetKeyDown(attachKey);
         bool sprintPressed = allowSprintAction && _inputs != null && _inputs.sprint;
 
         if (useToggle)
@@ -112,35 +107,35 @@ public class MagnetWalker : MonoBehaviour
             if (tiltFromUp < minSurfaceTiltFromUp) { if (debugLogging) Debug.Log("[MagnetWalker] Surface too flat."); return; }
 
             float aimAngle = Vector3.Angle(-GetAimForward(), hit.normal);
-            if (aimAngle > maxAttachAngle)        { if (debugLogging) Debug.Log($"[MagnetWalker] Not facing wall enough ({aimAngle:0.0} > {maxAttachAngle})."); return; }
+            if (aimAngle > maxAttachAngle) { if (debugLogging) Debug.Log($"[MagnetWalker] Not facing wall enough ({aimAngle:0.0} > {maxAttachAngle})."); return; }
 
             if (!string.IsNullOrEmpty(magneticTag) && !hit.collider.CompareTag(magneticTag))
             { if (debugLogging) Debug.Log("[MagnetWalker] Tag mismatch."); return; }
 
             _currentNormal = hit.normal;
-            _lastNormal    = hit.normal;
+            _lastNormal = hit.normal;
 
-            if (firstPersonController != null) firstPersonController.enabled = false;
+            if (_playerController != null) _playerController.enabled = false;
 
             if (_cc != null)
             {
                 _savedStepOffset = _cc.stepOffset;
                 _savedSlopeLimit = _cc.slopeLimit;
-                _cc.stepOffset   = 0f;
-                _cc.slopeLimit   = 90f;
+                _cc.stepOffset = 0f;
+                _cc.slopeLimit = 90f;
             }
 
-            if (cameraTarget != null)
+            if (_cameraTarget != null)
             {
-                _savedCamLocalRot = cameraTarget.localRotation;
+                _savedCamLocalRot = _cameraTarget.localRotation;
                 Vector3 fFlat = Vector3.ProjectOnPlane(GetAimForward(), _currentNormal).normalized;
                 if (fFlat.sqrMagnitude < 1e-4f) fFlat = Vector3.forward;
-                _yaw   = SignedAngleOnPlane(transform.forward, fFlat, _currentNormal);
+                _yaw = SignedAngleOnPlane(transform.forward, fFlat, _currentNormal);
                 _pitch = Mathf.Asin(Vector3.Dot(GetAimForward(), _currentNormal)) * Mathf.Rad2Deg;
             }
 
             _smoothedMove = Vector2.zero;
-            _lostTimer    = 0f;
+            _lostTimer = 0f;
             _magnetActive = true;
 
             // Snap slightly off the wall
@@ -163,11 +158,11 @@ public class MagnetWalker : MonoBehaviour
             _cc.slopeLimit = _savedSlopeLimit;
         }
 
-        if (cameraTarget != null)
+        if (_cameraTarget != null)
         {
-            cameraTarget.localRotation = _savedCamLocalRot;
-            var e = cameraTarget.localEulerAngles;
-            cameraTarget.localRotation = Quaternion.Euler(e.x, 0f, 0f);
+            _cameraTarget.localRotation = _savedCamLocalRot;
+            var e = _cameraTarget.localEulerAngles;
+            _cameraTarget.localRotation = Quaternion.Euler(e.x, 0f, 0f);
         }
 
         if (alignToWorldUpOnDetach)
@@ -178,7 +173,7 @@ public class MagnetWalker : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         }
 
-        if (firstPersonController != null) firstPersonController.enabled = true;
+        if (_playerController != null) _playerController.enabled = true;
         _magnetActive = false;
         if (debugLogging) Debug.Log("[MagnetWalker] DETACHED");
     }
@@ -221,11 +216,11 @@ public class MagnetWalker : MonoBehaviour
         _lastNormal = _currentNormal;
 
         // --- camera look on wall ---
-        if (_inputs != null && cameraTarget != null)
+        if (_inputs != null && _cameraTarget != null)
         {
-            _yaw   += _inputs.look.x * lookSensitivity.x * Time.deltaTime;
+            _yaw += _inputs.look.x * lookSensitivity.x * Time.deltaTime;
             _pitch -= _inputs.look.y * lookSensitivity.y * Time.deltaTime;
-            _pitch  = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
+            _pitch = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
 
             Vector3 fFlat = Quaternion.AngleAxis(_yaw, _currentNormal) *
                             ProjectOnPlane(transform.forward, _currentNormal).normalized;
@@ -235,24 +230,24 @@ public class MagnetWalker : MonoBehaviour
                 Quaternion.AngleAxis(_pitch, right) * fFlat,
                 _currentNormal
             );
-            cameraTarget.rotation = camRot;
+            _cameraTarget.rotation = camRot;
         }
 
         // --- align player up to wall ---
         Quaternion targetUp = Quaternion.FromToRotation(transform.up, _currentNormal) * transform.rotation;
-        transform.rotation  = Quaternion.Slerp(transform.rotation, targetUp, Time.deltaTime * alignUpSlerp);
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetUp, Time.deltaTime * alignUpSlerp);
 
         // --- move on wall plane + stick ---
         Vector2 raw = _inputs != null ? _inputs.move : Vector2.zero;
         _smoothedMove = Vector2.Lerp(_smoothedMove, raw, 1f - Mathf.Exp(-inputSmoothing * Time.deltaTime));
 
-        Vector3 camFwd   = cameraTarget ? cameraTarget.forward : transform.forward;
-        Vector3 camRight = cameraTarget ? cameraTarget.right   : transform.right;
+        Vector3 camFwd = _cameraTarget ? _cameraTarget.forward : transform.forward;
+        Vector3 camRight = _cameraTarget ? _cameraTarget.right : transform.right;
 
-        Vector3 forwardWall = ProjectOnPlane(camFwd,   _currentNormal).normalized;
-        Vector3 rightWall   = ProjectOnPlane(camRight, _currentNormal).normalized;
+        Vector3 forwardWall = ProjectOnPlane(camFwd, _currentNormal).normalized;
+        Vector3 rightWall = ProjectOnPlane(camRight, _currentNormal).normalized;
 
-        Vector3 move  = (forwardWall * _smoothedMove.y + rightWall * _smoothedMove.x) * wallMoveSpeed;
+        Vector3 move = (forwardWall * _smoothedMove.y + rightWall * _smoothedMove.x) * wallMoveSpeed;
         Vector3 stick = -_currentNormal * stickForce;
 
         // keep a tiny offset from wall to avoid clipping
@@ -276,7 +271,7 @@ public class MagnetWalker : MonoBehaviour
             Vector3 origin = transform.position + transform.up * mid;
 
             Vector3 dir = -_currentNormal; // straight back into the wall we’re stuck to
-            float   max = 1.25f;           // short lock distance is enough
+            float max = 1.25f;           // short lock distance is enough
 
             if (drawGizmos) Debug.DrawRay(origin, dir * max, Color.yellow);
 
@@ -325,7 +320,7 @@ public class MagnetWalker : MonoBehaviour
 
                 Vector3 closest = col.ClosestPoint(origin);
                 Vector3 dir = (closest - origin);
-                float   dist = dir.magnitude;
+                float dist = dir.magnitude;
                 if (dist < 1e-4f) continue;
                 dir /= dist;
 
@@ -334,7 +329,7 @@ public class MagnetWalker : MonoBehaviour
                     if (hit.distance < bestDist)
                     {
                         bestDist = hit.distance;
-                        bestHit  = hit;
+                        bestHit = hit;
                     }
                 }
             }
@@ -347,12 +342,12 @@ public class MagnetWalker : MonoBehaviour
     }
 
     // --- helpers ---
-    private Vector3 GetAimForward() => cameraTarget ? cameraTarget.forward : transform.forward;
+    private Vector3 GetAimForward() => _cameraTarget ? _cameraTarget.forward : transform.forward;
     private static Vector3 ProjectOnPlane(Vector3 v, Vector3 n) => v - Vector3.Dot(v, n) * n;
     private static float SignedAngleOnPlane(Vector3 from, Vector3 to, Vector3 n)
     {
         Vector3 f = ProjectOnPlane(from, n).normalized;
-        Vector3 t = ProjectOnPlane(to,   n).normalized;
+        Vector3 t = ProjectOnPlane(to, n).normalized;
         return Vector3.SignedAngle(f, t, n);
     }
 

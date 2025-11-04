@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: MagneticPlatform
       objectReference: {fileID: 0}
+    - target: {fileID: 3375677972783629276, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
+      propertyPath: m_Layer
+      value: 8
+      objectReference: {fileID: 0}
     - target: {fileID: 5068368233405570414, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
