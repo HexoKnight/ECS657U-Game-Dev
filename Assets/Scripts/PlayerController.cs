@@ -5,7 +5,11 @@ using UnityEngine.SceneManagement;
 // based initially off `FirstPersonController.cs` from:
 // https://assetstore.unity.com/packages/essentials/starter-assets-firstperson-updates-in-new-charactercontroller-pa-196525
 
-[RequireComponent(typeof(CharacterController))]
+// TODO:
+// - magnetic platform integration
+// - steps
+// - slopes
+
 [RequireComponent(typeof(PlayerInput))]
 [RequireComponent(typeof(PlayerInputs))]
 public class PlayerController : MonoBehaviour
@@ -56,13 +60,21 @@ public class PlayerController : MonoBehaviour
 	[Tooltip("How far in degrees can you move the camera down")]
 	public float bottomClamp = -90.0f;
 
+	[Header("Collision")]
+	[Tooltip("The rigidbody used for collision")]
+	public Rigidbody collisionRigidbody;
+	[Tooltip("Display collision gizmos for debugging")]
+	public bool collisionGizmos;
+	[Tooltip("Tolerance for the collision checking")]
+	public float tolerance;
+
 	// cinemachine
 	private float _cinemachineTargetPitch;
 
 	// player
 	private float _speed;
 	private float _rotationVelocity;
-	private float _verticalVelocity;
+	private Vector3 _velocity;
 
 	// timeout deltatime
 	private float _jumpTimeoutDelta;
@@ -70,7 +82,6 @@ public class PlayerController : MonoBehaviour
 
 
 	private PlayerInput _playerInput;
-	private CharacterController _controller;
 	private PlayerInputs _input;
 
 	private const float _threshold = 0.01f;
@@ -79,7 +90,6 @@ public class PlayerController : MonoBehaviour
 
 	private void Start()
 	{
-		_controller = GetComponent<CharacterController>();
 		_input = GetComponent<PlayerInputs>();
 		_playerInput = GetComponent<PlayerInput>();
 
@@ -112,7 +122,7 @@ public class PlayerController : MonoBehaviour
 	private void GroundedCheck()
 	{
 		// set sphere position, with offset
-		Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - groundedOffset, transform.position.z);
+		Vector3 spherePosition = new(transform.position.x, transform.position.y - groundedOffset, transform.position.z);
 		grounded = Physics.CheckSphere(spherePosition, groundedRadius, groundLayers, QueryTriggerInteraction.Ignore);
 	}
 
@@ -150,7 +160,7 @@ public class PlayerController : MonoBehaviour
 		if (_input.move == Vector2.zero) targetSpeed = 0.0f;
 
 		// a reference to the players current horizontal velocity
-		float currentHorizontalSpeed = new Vector3(_controller.velocity.x, 0.0f, _controller.velocity.z).magnitude;
+		float currentHorizontalSpeed = new Vector3(_velocity.x, 0.0f, _velocity.z).magnitude;
 
 		float speedOffset = 0.1f;
 		float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
@@ -182,7 +192,69 @@ public class PlayerController : MonoBehaviour
 		}
 
 		// move the player
-		_controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
+		// _controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _velocity.y, 0.0f) * Time.deltaTime);
+
+		Vector3 moveVector = inputDirection.normalized * _speed + new Vector3(0.0f, _velocity.y, 0.0f);
+
+		Vector3 moveDelta = moveVector * Time.deltaTime;
+
+		Vector3 actualMove = TryMove(moveDelta);
+		transform.position += actualMove;
+
+		_velocity = actualMove / Time.deltaTime;
+	}
+
+	private Vector3 TryMove(Vector3 vector)
+		=> TryMoveRec(collisionRigidbody.position, vector, vector, 0);
+
+	private Vector3 TryMoveRec(Vector3 startPos, Vector3 vector, Vector3 originalVector, int depth)
+	{
+		if (depth > 20)
+		{
+			Debug.Log("too deep!!");
+			return Vector3.zero;
+		}
+
+		Vector3 direction = vector.normalized;
+		float maxDistance = vector.magnitude;
+
+		if (!SweepFromPosWithTolerance(startPos, direction, maxDistance, tolerance, out RaycastHit hitInfo))
+			return vector;
+
+		Vector3 toHit = direction * hitInfo.distance;
+		Vector3 leftover = vector - toHit;
+
+		// project leftover to give slideVector
+		Vector3 slideVector = Vector3.ProjectOnPlane(leftover, hitInfo.normal);
+
+		// give slideVector same magnitude as leftover
+		slideVector = slideVector.normalized * leftover.magnitude;
+
+		// scale slideVector according to it's similarity to the original direction of movement
+		// clamping at 0 (which occurs with tightly curved corners) to prevent backwards sliding
+		slideVector *= System.Math.Max(0, Vector3.Dot(slideVector.normalized, originalVector.normalized));
+
+		return toHit + TryMoveRec(toHit + startPos, slideVector, originalVector, depth + 1);
+	}
+
+	private bool SweepFromPosWithTolerance(Vector3 position, Vector3 direction, float maxDistance, float tolerance, out RaycastHit hitInfo)
+	{
+		Vector3 offset = direction * tolerance;
+
+		Vector3 prevPos = collisionRigidbody.position;
+		collisionRigidbody.position = position - offset;
+		bool result = collisionRigidbody.SweepTest(direction, out RaycastHit rawHitInfo, maxDistance + tolerance, QueryTriggerInteraction.Ignore);
+		collisionRigidbody.position = prevPos;
+
+		rawHitInfo.distance -= tolerance;
+		hitInfo = rawHitInfo;
+
+		if (result)
+		{
+			if (hitInfo.distance > maxDistance) Debug.Log("SweepTest over swept!!: " + hitInfo.distance + " > " + maxDistance);
+		}
+
+		return result;
 	}
 
 	private void JumpAndGravity()
@@ -193,16 +265,16 @@ public class PlayerController : MonoBehaviour
 			_fallTimeoutDelta = fallTimeout;
 
 			// stop our velocity dropping infinitely when grounded
-			if (_verticalVelocity < 0.0f)
+			if (_velocity.y < 0.0f)
 			{
-				_verticalVelocity = 0.0f;
+				_velocity.y = 0.0f;
 			}
 
 			// Jump
 			if (_input.jump && _jumpTimeoutDelta <= 0.0f)
 			{
 				// the square root of H * -2 * G = how much velocity needed to reach desired height
-				_verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+				_velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
 			}
 
 			// jump timeout
@@ -227,9 +299,9 @@ public class PlayerController : MonoBehaviour
 		}
 
 		// apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
-		if (useGravity && _verticalVelocity < terminalVelocity)
+		if (useGravity && _velocity.y < terminalVelocity)
 		{
-			_verticalVelocity += gravity * Time.deltaTime;
+			_velocity.y += gravity * Time.deltaTime;
 		}
 	}
 
@@ -240,10 +312,20 @@ public class PlayerController : MonoBehaviour
 		return Mathf.Clamp(lfAngle, lfMin, lfMax);
 	}
 
+	private void OnDrawGizmos()
+	{
+		if (collisionGizmos)
+		{
+			Vector3 tryMove = transform.position + TryMove(transform.forward * 10);
+			Gizmos.color = Color.red;
+			Gizmos.DrawWireSphere(tryMove, GetComponentInChildren<CapsuleCollider>().radius);
+		}
+	}
+
 	private void OnDrawGizmosSelected()
 	{
-		Color transparentGreen = new Color(0.0f, 1.0f, 0.0f, 0.35f);
-		Color transparentRed = new Color(1.0f, 0.0f, 0.0f, 0.35f);
+		Color transparentGreen = new(0.0f, 1.0f, 0.0f, 0.35f);
+		Color transparentRed = new(1.0f, 0.0f, 0.0f, 0.35f);
 
 		if (grounded) Gizmos.color = transparentGreen;
 		else Gizmos.color = transparentRed;

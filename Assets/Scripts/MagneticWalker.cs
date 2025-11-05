@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerController))]
 public class MagnetWalker : MonoBehaviour
 {
@@ -59,7 +58,6 @@ public class MagnetWalker : MonoBehaviour
     void Awake()
     {
         _inputs = GetComponent<PlayerInputs>();
-        _cc = GetComponent<CharacterController>();
 
         _playerController = GetComponent<PlayerController>();
         _cameraTarget = _playerController.cinemachineCameraTarget.transform;
