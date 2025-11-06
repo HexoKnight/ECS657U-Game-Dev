@@ -171,6 +171,8 @@ public class PlayerController : MonoBehaviour
 
 	private void Move()
 	{
+		// use local velocity for simplicity
+		Vector3 localVelocity = transform.InverseTransformVector(_velocity);
 
 		float targetSpeed;
 		Vector3 targetDirection;
@@ -180,7 +182,7 @@ public class PlayerController : MonoBehaviour
 		{
 			targetSpeed = 0.0f;
 			// use previous direction if there is no current input
-			targetDirection = new Vector3(_velocity.x, 0, _velocity.z).normalized;
+			targetDirection = new Vector3(localVelocity.x, 0, localVelocity.z).normalized;
 		}
 		else
 		{
@@ -188,7 +190,7 @@ public class PlayerController : MonoBehaviour
 			targetDirection = new Vector3(_input.move.x, 0, _input.move.y).normalized;
 		}
 
-		float currentHorizontalSpeed = new Vector2(_velocity.x, _velocity.z).magnitude;
+		float currentHorizontalSpeed = new Vector2(localVelocity.x, localVelocity.z).magnitude;
 
 		float speedOffset = 0.1f;
 		float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
@@ -212,7 +214,8 @@ public class PlayerController : MonoBehaviour
 
 		// try move the player
 
-		Vector3 moveVector = targetDirection * _speed + new Vector3(0.0f, _velocity.y, 0.0f);
+		Vector3 localMoveVector = targetDirection * _speed + new Vector3(0.0f, localVelocity.y, 0.0f);
+		Vector3 moveVector = transform.TransformVector(localMoveVector);
 
 		Vector3 actualMove = TryMove(moveVector * Time.deltaTime);
 
@@ -281,6 +284,9 @@ public class PlayerController : MonoBehaviour
 
 	private void JumpAndGravity()
 	{
+		// use local velocity for simplicity
+		Vector3 localVelocity = transform.InverseTransformVector(_velocity);
+
 		if (grounded)
 		{
 			// reset the fall timeout timer
@@ -289,10 +295,9 @@ public class PlayerController : MonoBehaviour
 			if (_input.jump && _jumpTimeoutDelta <= 0.0f)
 			{
 				// the square root of H * -2 * G = how much velocity needed to reach desired height
-				_velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+				localVelocity.y += Mathf.Sqrt(jumpHeight * -2f * gravity);
 			}
 
-			// jump timeout
 			if (_jumpTimeoutDelta >= 0.0f)
 			{
 				_jumpTimeoutDelta -= Time.deltaTime;
@@ -313,10 +318,12 @@ public class PlayerController : MonoBehaviour
 		// reset jump regardless of whether we succeeded in doing so or not
 		_input.jump = false;
 
-		if (useGravity && _velocity.y < terminalVelocity)
+		if (useGravity && localVelocity.y < terminalVelocity)
 		{
-			_velocity.y += gravity * Time.deltaTime;
+			localVelocity.y += gravity * Time.deltaTime;
 		}
+
+		_velocity = transform.TransformVector(localVelocity);
 	}
 
 	private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
