@@ -48,25 +48,33 @@ public class PlayerController : MonoBehaviour
 	[Tooltip("Useful for rough ground")]
 	public float groundedOffset = -0.14f;
 	[Tooltip("The radius of the grounded check. Should match the radius of the CharacterController")]
+	[Min(0)]
 	public float groundedRadius = 0.5f;
 	[Tooltip("What layers the character uses as ground")]
 	public LayerMask groundLayers;
 
 	[Header("Cinemachine")]
 	[Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
-	public GameObject cinemachineCameraTarget;
+	public Transform cinemachineCameraTarget;
 	[Tooltip("How far in degrees can you move the camera up")]
+	[Range(0, 90)]
 	public float topClamp = 90.0f;
 	[Tooltip("How far in degrees can you move the camera down")]
+	[Range(-90, 0)]
 	public float bottomClamp = -90.0f;
 
 	[Header("Collision")]
 	[Tooltip("The rigidbody used for collision")]
 	public Rigidbody collisionRigidbody;
+	[Tooltip("Tolerance for the collision checking")]
+	[Min(0)]
+	public float tolerance;
+
+	[Header("Debug")]
 	[Tooltip("Display collision gizmos for debugging")]
 	public bool collisionGizmos;
-	[Tooltip("Tolerance for the collision checking")]
-	public float tolerance;
+
+	[Header("Internal")]
 
 	// cinemachine
 	private float _cinemachineTargetPitch;
@@ -74,6 +82,7 @@ public class PlayerController : MonoBehaviour
 	// player
 	private float _speed;
 	private float _rotationVelocity;
+	[SerializeField]
 	private Vector3 _velocity;
 
 	// timeout deltatime
@@ -141,7 +150,7 @@ public class PlayerController : MonoBehaviour
 			_cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);
 
 			// Update Cinemachine camera target pitch
-			cinemachineCameraTarget.transform.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
+			cinemachineCameraTarget.localRotation = Quaternion.Euler(_cinemachineTargetPitch, 0.0f, 0.0f);
 
 			// rotate the player left and right
 			transform.Rotate(Vector3.up * _rotationVelocity);

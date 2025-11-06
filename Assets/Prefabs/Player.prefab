@@ -404,12 +404,13 @@ MonoBehaviour:
   groundLayers:
     serializedVersion: 2
     m_Bits: 384
-  cinemachineCameraTarget: {fileID: 4447793862057425183}
+  cinemachineCameraTarget: {fileID: 122406705304090264}
   topClamp: 90
   bottomClamp: -90
   collisionRigidbody: {fileID: 4091059125466078848}
   tolerance: 0.0001
   collisionGizmos: 0
+  _velocity: {x: 0, y: 0, z: 0}
 --- !u!114 &7446226978208146898
 MonoBehaviour:
   m_ObjectHideFlags: 0
