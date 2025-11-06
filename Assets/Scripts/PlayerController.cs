@@ -116,10 +116,10 @@ public class PlayerController : MonoBehaviour
 		_fallTimeoutDelta = fallTimeout;
 	}
 
-	private void Update()
+	private void FixedUpdate()
 	{
-		JumpAndGravity();
 		GroundedCheck();
+		JumpAndGravity();
 		Move();
 		DeadZoneCheck();
 	}
