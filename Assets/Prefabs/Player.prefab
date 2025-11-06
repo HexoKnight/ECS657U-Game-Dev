@@ -391,6 +391,7 @@ MonoBehaviour:
   sprintSpeed: 6
   rotationSpeed: 1
   speedChangeRate: 10
+  airSpeedChangeRateRatio: 0.1
   jumpHeight: 1.2
   gravity: -15
   terminalVelocity: 53

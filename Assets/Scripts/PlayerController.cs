@@ -23,6 +23,8 @@ public class PlayerController : MonoBehaviour
 	public float rotationSpeed = 1.0f;
 	[Tooltip("Acceleration and deceleration")]
 	public float speedChangeRate = 10.0f;
+	[Tooltip("The relative acceleration and deceleration when not grounded")]
+	public float airSpeedChangeRateRatio = 0.1f;
 
 	[Space(10)]
 	[Tooltip("The height the player can jump")]
@@ -187,9 +189,10 @@ public class PlayerController : MonoBehaviour
 		// accelerate or decelerate to target speed
 		if (currentHorizontalSpeed < targetSpeed - speedOffset || currentHorizontalSpeed > targetSpeed + speedOffset)
 		{
+			float finalSpeedChangeRate = speedChangeRate * (grounded ? 1 : airSpeedChangeRateRatio);
 			// creates curved result rather than a linear one giving a more organic speed change
 			// note T in Lerp is clamped, so we don't need to clamp our speed
-			_speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude, Time.deltaTime * speedChangeRate);
+			_speed = Mathf.Lerp(currentHorizontalSpeed, targetSpeed * inputMagnitude, Time.deltaTime * finalSpeedChangeRate);
 
 			// round speed to 3 decimal places
 			_speed = Mathf.Round(_speed * 1000f) / 1000f;
