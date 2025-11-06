@@ -42,7 +42,6 @@ public class MagnetWalker : MonoBehaviour
 
     // ---- internals ----
     private PlayerInputs _inputs;
-    private CharacterController _cc;
     private PlayerController _playerController;
     private Transform _cameraTarget;
 
@@ -113,16 +112,6 @@ public class MagnetWalker : MonoBehaviour
             _currentNormal = hit.normal;
             _lastNormal = hit.normal;
 
-            if (_playerController != null) _playerController.enabled = false;
-
-            if (_cc != null)
-            {
-                _savedStepOffset = _cc.stepOffset;
-                _savedSlopeLimit = _cc.slopeLimit;
-                _cc.stepOffset = 0f;
-                _cc.slopeLimit = 90f;
-            }
-
             if (_cameraTarget != null)
             {
                 _savedCamLocalRot = _cameraTarget.localRotation;
@@ -136,10 +125,6 @@ public class MagnetWalker : MonoBehaviour
             _lostTimer = 0f;
             _magnetActive = true;
 
-            // Snap slightly off the wall
-            Vector3 snapPos = hit.point + hit.normal * snapOffset;
-            _cc.Move(snapPos - transform.position);
-
             if (debugLogging) Debug.Log("[MagnetWalker] ATTACHED");
         }
         else
@@ -150,12 +135,6 @@ public class MagnetWalker : MonoBehaviour
 
     private void Detach()
     {
-        if (_cc != null)
-        {
-            _cc.stepOffset = _savedStepOffset;
-            _cc.slopeLimit = _savedSlopeLimit;
-        }
-
         if (_cameraTarget != null)
         {
             _cameraTarget.localRotation = _savedCamLocalRot;
@@ -171,7 +150,6 @@ public class MagnetWalker : MonoBehaviour
             transform.rotation = Quaternion.Euler(0f, yaw, 0f);
         }
 
-        if (_playerController != null) _playerController.enabled = true;
         _magnetActive = false;
         if (debugLogging) Debug.Log("[MagnetWalker] DETACHED");
     }
@@ -213,45 +191,9 @@ public class MagnetWalker : MonoBehaviour
         }
         _lastNormal = _currentNormal;
 
-        // --- camera look on wall ---
-        if (_inputs != null && _cameraTarget != null)
-        {
-            _yaw += _inputs.look.x * lookSensitivity.x * Time.deltaTime;
-            _pitch -= _inputs.look.y * lookSensitivity.y * Time.deltaTime;
-            _pitch = Mathf.Clamp(_pitch, pitchLimits.x, pitchLimits.y);
-
-            Vector3 fFlat = Quaternion.AngleAxis(_yaw, _currentNormal) *
-                            ProjectOnPlane(transform.forward, _currentNormal).normalized;
-            Vector3 right = Vector3.Cross(_currentNormal, fFlat).normalized;
-
-            Quaternion camRot = Quaternion.LookRotation(
-                Quaternion.AngleAxis(_pitch, right) * fFlat,
-                _currentNormal
-            );
-            _cameraTarget.rotation = camRot;
-        }
-
         // --- align player up to wall ---
         Quaternion targetUp = Quaternion.FromToRotation(transform.up, _currentNormal) * transform.rotation;
         transform.rotation = Quaternion.Slerp(transform.rotation, targetUp, Time.deltaTime * alignUpSlerp);
-
-        // --- move on wall plane + stick ---
-        Vector2 raw = _inputs != null ? _inputs.move : Vector2.zero;
-        _smoothedMove = Vector2.Lerp(_smoothedMove, raw, 1f - Mathf.Exp(-inputSmoothing * Time.deltaTime));
-
-        Vector3 camFwd = _cameraTarget ? _cameraTarget.forward : transform.forward;
-        Vector3 camRight = _cameraTarget ? _cameraTarget.right : transform.right;
-
-        Vector3 forwardWall = ProjectOnPlane(camFwd, _currentNormal).normalized;
-        Vector3 rightWall = ProjectOnPlane(camRight, _currentNormal).normalized;
-
-        Vector3 move = (forwardWall * _smoothedMove.y + rightWall * _smoothedMove.x) * wallMoveSpeed;
-        Vector3 stick = -_currentNormal * stickForce;
-
-        // keep a tiny offset from wall to avoid clipping
-        Vector3 keepOff = hit.point + _currentNormal * snapOffset - transform.position;
-
-        _cc.Move((move + stick + keepOff * 10f) * Time.deltaTime);
     }
 
     // --- primary lock while attached: cast from chest along -currentNormal ---
@@ -264,9 +206,7 @@ public class MagnetWalker : MonoBehaviour
 
         try
         {
-            float mid = _cc ? Mathf.Clamp(_cc.height * 0.45f, 0.6f, 1.2f) : 0.8f;
-            // IMPORTANT: use transform.up (your current local up), not world up
-            Vector3 origin = transform.position + transform.up * mid;
+            Vector3 origin = transform.position;
 
             Vector3 dir = -_currentNormal; // straight back into the wall we’re stuck to
             float max = 1.25f;           // short lock distance is enough
@@ -305,9 +245,7 @@ public class MagnetWalker : MonoBehaviour
 
         try
         {
-            float mid = _cc ? Mathf.Clamp(_cc.height * 0.45f, 0.6f, 1.2f) : 0.8f;
-            // IMPORTANT: use transform.up here too
-            Vector3 origin = transform.position + transform.up * mid;
+            Vector3 origin = transform.position;
 
             Collider[] cols = Physics.OverlapSphere(origin, detectRadius, magneticLayers, QueryTriggerInteraction.Ignore);
             if (cols.Length == 0) return false;
@@ -351,9 +289,8 @@ public class MagnetWalker : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        if (!drawGizmos || _cc == null) return;
-        float mid = Mathf.Clamp(_cc.height * 0.45f, 0.6f, 1.2f);
-        Vector3 origin = transform.position + transform.up * mid;
+        if (!drawGizmos) return;
+        Vector3 origin = transform.position;
         Gizmos.color = Color.cyan; Gizmos.DrawWireSphere(origin, detectRadius);
         Gizmos.color = Color.yellow; Gizmos.DrawRay(origin, -_currentNormal * 1.0f);
     }
