@@ -286,13 +286,6 @@ public class PlayerController : MonoBehaviour
 			// reset the fall timeout timer
 			_fallTimeoutDelta = fallTimeout;
 
-			// stop our velocity dropping infinitely when grounded
-			if (_velocity.y < 0.0f)
-			{
-				_velocity.y = 0.0f;
-			}
-
-			// Jump
 			if (_input.jump && _jumpTimeoutDelta <= 0.0f)
 			{
 				// the square root of H * -2 * G = how much velocity needed to reach desired height
@@ -315,12 +308,11 @@ public class PlayerController : MonoBehaviour
 			{
 				_fallTimeoutDelta -= Time.deltaTime;
 			}
-
-			// if we are not grounded, do not jump
-			_input.jump = false;
 		}
 
-		// apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)
+		// reset jump regardless of whether we succeeded in doing so or not
+		_input.jump = false;
+
 		if (useGravity && _velocity.y < terminalVelocity)
 		{
 			_velocity.y += gravity * Time.deltaTime;
