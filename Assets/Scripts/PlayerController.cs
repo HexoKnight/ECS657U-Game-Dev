@@ -219,6 +219,9 @@ public class PlayerController : MonoBehaviour
 		transform.position += actualMove;
 
 		_velocity = actualMove / Time.deltaTime;
+
+		if (_velocity.sqrMagnitude > Vector3.kEpsilon && Vector3.Dot(moveVector, _velocity) < 0)
+			Debug.Log("pullback occurred: " + moveVector + " -> " + _velocity);
 	}
 
 	private Vector3 TryMove(Vector3 vector)
