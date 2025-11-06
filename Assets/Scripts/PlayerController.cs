@@ -224,9 +224,11 @@ public class PlayerController : MonoBehaviour
 	private Vector3 TryMove(Vector3 vector)
 		=> TryMoveRec(ColliderPosition, vector, vector, 0);
 
+	const int TRY_MOVE_MAX_DEPTH = 20;
+
 	private Vector3 TryMoveRec(Vector3 startPos, Vector3 vector, Vector3 originalVector, int depth)
 	{
-		if (depth > 20)
+		if (depth > TRY_MOVE_MAX_DEPTH)
 		{
 			Debug.Log("too deep!!");
 			return Vector3.zero;
