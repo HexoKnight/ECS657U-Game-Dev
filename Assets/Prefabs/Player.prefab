@@ -410,6 +410,8 @@ MonoBehaviour:
   collisionRigidbody: {fileID: 4091059125466078848}
   tolerance: 0.0001
   collisionGizmos: 0
+  collisionGizmoDistance: 1
+  useVelocityForCollisionGizmo: 0
   _velocity: {x: 0, y: 0, z: 0}
 --- !u!114 &7446226978208146898
 MonoBehaviour:

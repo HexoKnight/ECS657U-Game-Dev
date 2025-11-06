@@ -73,6 +73,11 @@ public class PlayerController : MonoBehaviour
 	[Header("Debug")]
 	[Tooltip("Display collision gizmos for debugging")]
 	public bool collisionGizmos;
+	[Tooltip("The distance the collision gizmo projects")]
+	[Min(0)]
+	public float collisionGizmoDistance = 1;
+	[Tooltip("Whether or not to use the current velocity for the projection gizmo")]
+	public bool useVelocityForCollisionGizmo;
 
 	[Header("Internal")]
 
@@ -96,6 +101,10 @@ public class PlayerController : MonoBehaviour
 	private const float _threshold = 0.01f;
 
 	private bool IsCurrentDeviceMouse => _playerInput.currentControlScheme == "KeyboardMouse";
+
+	// use transform position as that updates instantly to parent transform changes
+	// while the rigidbody position only updates after a physics step
+	private Vector3 ColliderPosition => collisionRigidbody.transform.position;
 
 	private void Start()
 	{
@@ -128,11 +137,12 @@ public class PlayerController : MonoBehaviour
 		}
 	}
 
+	Vector3 GroundSpherePosition => ColliderPosition - collisionRigidbody.transform.up * groundedOffset;
+
 	private void GroundedCheck()
 	{
 		// set sphere position, with offset
-		Vector3 spherePosition = new(transform.position.x, transform.position.y - groundedOffset, transform.position.z);
-		grounded = Physics.CheckSphere(spherePosition, groundedRadius, groundLayers, QueryTriggerInteraction.Ignore);
+		grounded = Physics.CheckSphere(GroundSpherePosition, groundedRadius, groundLayers, QueryTriggerInteraction.Ignore);
 	}
 
 	private void CameraRotation()
@@ -214,7 +224,7 @@ public class PlayerController : MonoBehaviour
 	}
 
 	private Vector3 TryMove(Vector3 vector)
-		=> TryMoveRec(collisionRigidbody.position, vector, vector, 0);
+		=> TryMoveRec(ColliderPosition, vector, vector, 0);
 
 	private Vector3 TryMoveRec(Vector3 startPos, Vector3 vector, Vector3 originalVector, int depth)
 	{
@@ -325,9 +335,14 @@ public class PlayerController : MonoBehaviour
 	{
 		if (collisionGizmos)
 		{
-			Vector3 tryMove = transform.position + TryMove(transform.forward * 10);
+			Vector3 projectionDirection = useVelocityForCollisionGizmo ? _velocity : transform.forward;
+			Vector3 tryMove = ColliderPosition + TryMove(projectionDirection * collisionGizmoDistance);
+
+			MeshFilter meshFilter = GetComponentInChildren<MeshFilter>();
+			Vector3 newMeshPosition = tryMove + meshFilter.transform.position - ColliderPosition;
+
 			Gizmos.color = Color.red;
-			Gizmos.DrawWireSphere(tryMove, GetComponentInChildren<CapsuleCollider>().radius);
+			Gizmos.DrawWireMesh(meshFilter.sharedMesh, 0, newMeshPosition, meshFilter.transform.rotation, meshFilter.transform.lossyScale);
 		}
 	}
 
@@ -340,6 +355,6 @@ public class PlayerController : MonoBehaviour
 		else Gizmos.color = transparentRed;
 
 		// when selected, draw a gizmo in the position of, and matching radius of, the grounded collider
-		Gizmos.DrawSphere(new Vector3(transform.position.x, transform.position.y - groundedOffset, transform.position.z), groundedRadius);
+		Gizmos.DrawSphere(GroundSpherePosition, groundedRadius);
 	}
 }
