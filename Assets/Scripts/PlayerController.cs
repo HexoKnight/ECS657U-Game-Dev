@@ -171,17 +171,24 @@ public class PlayerController : MonoBehaviour
 
 	private void Move()
 	{
-		// set target speed based on move speed, sprint speed and if sprint is pressed
-		float targetSpeed = _input.sprint ? sprintSpeed : moveSpeed;
 
-		// a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
+		float targetSpeed;
+		Vector3 targetDirection;
 
 		// note: Vector2's == operator uses approximation so is not floating point error prone, and is cheaper than magnitude
-		// if there is no input, set the target speed to 0
-		if (_input.move == Vector2.zero) targetSpeed = 0.0f;
+		if (_input.move == Vector2.zero)
+		{
+			targetSpeed = 0.0f;
+			// use previous direction if there is no current input
+			targetDirection = new Vector3(_velocity.x, 0, _velocity.z).normalized;
+		}
+		else
+		{
+			targetSpeed = _input.sprint ? sprintSpeed : moveSpeed;
+			targetDirection = new Vector3(_input.move.x, 0, _input.move.y).normalized;
+		}
 
-		// a reference to the players current horizontal velocity
-		float currentHorizontalSpeed = new Vector3(_velocity.x, 0.0f, _velocity.z).magnitude;
+		float currentHorizontalSpeed = new Vector2(_velocity.x, _velocity.z).magnitude;
 
 		float speedOffset = 0.1f;
 		float inputMagnitude = _input.analogMovement ? _input.move.magnitude : 1f;
@@ -199,28 +206,16 @@ public class PlayerController : MonoBehaviour
 		}
 		else
 		{
+			// snap to speed if within speedOffset
 			_speed = targetSpeed;
 		}
 
-		// normalise input direction
-		Vector3 inputDirection = new Vector3(_input.move.x, 0.0f, _input.move.y).normalized;
+		// try move the player
 
-		// note: Vector2's != operator uses approximation so is not floating point error prone, and is cheaper than magnitude
-		// if there is a move input rotate player when the player is moving
-		if (_input.move != Vector2.zero)
-		{
-			// move
-			inputDirection = transform.right * _input.move.x + transform.forward * _input.move.y;
-		}
+		Vector3 moveVector = targetDirection * _speed + new Vector3(0.0f, _velocity.y, 0.0f);
 
-		// move the player
-		// _controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _velocity.y, 0.0f) * Time.deltaTime);
+		Vector3 actualMove = TryMove(moveVector * Time.deltaTime);
 
-		Vector3 moveVector = inputDirection.normalized * _speed + new Vector3(0.0f, _velocity.y, 0.0f);
-
-		Vector3 moveDelta = moveVector * Time.deltaTime;
-
-		Vector3 actualMove = TryMove(moveDelta);
 		transform.position += actualMove;
 
 		_velocity = actualMove / Time.deltaTime;
