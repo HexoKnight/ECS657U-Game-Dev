@@ -72,6 +72,12 @@ public class PlayerController : MonoBehaviour
 	[Min(0)]
 	public float tolerance;
 
+	[Header("Other")]
+	[Tooltip("The world space up vector the player is currently trying to achieve")]
+	public Vector3 targetUp = Vector3.up;
+	[Tooltip("The speed at which the player aligns to the target up")]
+	public float alignUpSpeed = 12f;
+
 	[Header("Debug")]
 	[Tooltip("Display collision gizmos for debugging")]
 	public bool collisionGizmos;
@@ -120,9 +126,13 @@ public class PlayerController : MonoBehaviour
 
 	private void FixedUpdate()
 	{
+		AlignUp();
+
 		GroundedCheck();
 		JumpAndGravity();
+
 		Move();
+
 		DeadZoneCheck();
 	}
 
@@ -167,6 +177,13 @@ public class PlayerController : MonoBehaviour
 			// rotate the player left and right
 			transform.Rotate(Vector3.up * _rotationVelocity);
 		}
+	}
+
+	private void AlignUp()
+	{
+		Vector3 currentUp = transform.up;
+		Quaternion targetRotation = Quaternion.FromToRotation(currentUp, targetUp) * transform.rotation;
+		transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * alignUpSpeed);
 	}
 
 	private void Move()

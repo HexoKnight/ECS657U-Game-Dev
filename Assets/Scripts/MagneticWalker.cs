@@ -15,14 +15,10 @@ public class MagnetWalker : MonoBehaviour
     [Range(0, 90)] public float minSurfaceTiltFromUp = 25f;
     [Range(0, 90)] public float maxAttachAngle = 80f;
 
-    [Header("Wall locomotion")]
-    public float alignUpSlerp = 12f;
-
     [Header("Detach / stability")]
     [Tooltip("How long we can lose the wall before detaching (seconds).")]
     public float lostWallGrace = 0.25f;
     [Range(0, 90)] public float maxNormalChangeToDetach = 55f;
-    public bool alignToWorldUpOnDetach = true;
 
     [Header("Debug")]
     public bool debugLogging = true;
@@ -35,7 +31,6 @@ public class MagnetWalker : MonoBehaviour
 
     private bool _magnetActive;
 
-    private Vector3 _currentNormal = Vector3.up, _lastNormal = Vector3.up;
     private float _lostTimer;
 
     void Awake()
@@ -50,7 +45,6 @@ public class MagnetWalker : MonoBehaviour
     {
         HandleActivation();
         if (_magnetActive) TickMagnet();
-        AlignUp();
     }
 
     private void HandleActivation()
@@ -73,14 +67,6 @@ public class MagnetWalker : MonoBehaviour
         _inputs.magnetise = false;
     }
 
-    private void AlignUp()
-    {
-        if (transform.up == _currentNormal) return;
-
-        Quaternion targetUp = Quaternion.FromToRotation(transform.up, _currentNormal) * transform.rotation;
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetUp, Time.deltaTime * alignUpSlerp);
-    }
-
     private void TryAttach()
     {
         if (FindBestSurface(out var hit))
@@ -94,8 +80,7 @@ public class MagnetWalker : MonoBehaviour
             if (!string.IsNullOrEmpty(magneticTag) && !hit.collider.CompareTag(magneticTag))
             { if (debugLogging) Debug.Log("[MagnetWalker] Tag mismatch."); return; }
 
-            _currentNormal = hit.normal;
-            _lastNormal = hit.normal;
+            _playerController.targetUp = hit.normal;
 
             _lostTimer = 0f;
             _magnetActive = true;
@@ -110,10 +95,7 @@ public class MagnetWalker : MonoBehaviour
 
     private void Detach()
     {
-        if (alignToWorldUpOnDetach)
-        {
-            _currentNormal = Vector3.up;
-        }
+        _playerController.targetUp = Vector3.up;
 
         _magnetActive = false;
         if (debugLogging) Debug.Log("[MagnetWalker] DETACHED");
@@ -129,7 +111,7 @@ public class MagnetWalker : MonoBehaviour
             // 2) FALLBACK: try wide search once while grace is running
             if (_lostTimer < lostWallGrace && FindBestSurface(out var reHit))
             {
-                _currentNormal = reHit.normal;
+                _playerController.targetUp = reHit.normal;
                 _lostTimer = 0f;
                 hit = reHit; // recovered lock
             }
@@ -145,16 +127,7 @@ public class MagnetWalker : MonoBehaviour
             _lostTimer = 0f;
         }
 
-        _currentNormal = hit.normal;
-
-        float normalDelta = Vector3.Angle(_lastNormal, _currentNormal);
-        if (normalDelta > maxNormalChangeToDetach)
-        {
-            if (debugLogging) Debug.Log("[MagnetWalker] Normal changed too much -> Detach");
-            Detach();
-            return;
-        }
-        _lastNormal = _currentNormal;
+        _playerController.targetUp = hit.normal;
     }
 
     // --- primary lock while attached: cast from chest along -currentNormal ---
@@ -169,7 +142,7 @@ public class MagnetWalker : MonoBehaviour
         {
             Vector3 origin = transform.position;
 
-            Vector3 dir = -_currentNormal; // straight back into the wall we’re stuck to
+            Vector3 dir = -_playerController.targetUp; // straight back into the wall we’re stuck to
             float max = 1.25f;           // short lock distance is enough
 
             if (drawGizmos) Debug.DrawRay(origin, dir * max, Color.yellow);
@@ -246,6 +219,6 @@ public class MagnetWalker : MonoBehaviour
         if (!drawGizmos) return;
         Vector3 origin = transform.position;
         Gizmos.color = Color.cyan; Gizmos.DrawWireSphere(origin, detectRadius);
-        Gizmos.color = Color.yellow; Gizmos.DrawRay(origin, -_currentNormal * 1.0f);
+        Gizmos.color = Color.yellow; if (_playerController != null) Gizmos.DrawRay(origin, -_playerController.targetUp * 1.0f);
     }
 }
