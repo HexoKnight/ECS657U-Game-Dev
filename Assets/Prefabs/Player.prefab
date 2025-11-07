@@ -451,21 +451,14 @@ MonoBehaviour:
     m_Bits: 256
   magneticTag: 
   useToggle: 1
-  allowSprintAction: 1
   detectRadius: 2.5
   probeRadius: 0.35
   queriesHitBackfaces: 1
   minSurfaceTiltFromUp: 25
   maxAttachAngle: 80
-  wallMoveSpeed: 4.5
-  stickForce: 34
   alignUpSlerp: 12
-  inputSmoothing: 12
-  snapOffset: 0.12
   lostWallGrace: 0.25
   maxNormalChangeToDetach: 55
   alignToWorldUpOnDetach: 1
-  lookSensitivity: {x: 100, y: -100}
-  pitchLimits: {x: -80, y: 80}
   debugLogging: 1
   drawGizmos: 1

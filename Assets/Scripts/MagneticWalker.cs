@@ -7,7 +7,6 @@ public class MagnetWalker : MonoBehaviour
     public LayerMask magneticLayers;
     public string magneticTag = "";
     public bool useToggle = true;
-    public bool allowSprintAction = true;
 
     [Header("Robust surface detection")]
     public float detectRadius = 2.5f;
@@ -17,23 +16,13 @@ public class MagnetWalker : MonoBehaviour
     [Range(0, 90)] public float maxAttachAngle = 80f;
 
     [Header("Wall locomotion")]
-    public float wallMoveSpeed = 4.5f;
-    public float stickForce = 34f;
     public float alignUpSlerp = 12f;
-    public float inputSmoothing = 12f;
-    public float snapOffset = 0.12f;
 
     [Header("Detach / stability")]
     [Tooltip("How long we can lose the wall before detaching (seconds).")]
     public float lostWallGrace = 0.25f;
     [Range(0, 90)] public float maxNormalChangeToDetach = 55f;
     public bool alignToWorldUpOnDetach = true;
-
-    [Header("Camera (look)")]
-    public Vector2 lookSensitivity = new Vector2(1.2f, 1.0f);
-    public Vector2 pitchLimits = new Vector2(-80f, 80f);
-
-    [Header("References")]
 
     [Header("Debug")]
     public bool debugLogging = true;
@@ -44,13 +33,9 @@ public class MagnetWalker : MonoBehaviour
     private PlayerController _playerController;
     private Transform _cameraTarget;
 
-    private bool _magnetActive, _toggleLatch;
-    private Vector2 _smoothedMove;
-    private float _yaw, _pitch;
+    private bool _magnetActive;
 
     private Vector3 _currentNormal = Vector3.up, _lastNormal = Vector3.up;
-    private Quaternion _savedCamLocalRot;
-    private float _savedStepOffset, _savedSlopeLimit;
     private float _lostTimer;
 
     void Awake()
@@ -69,28 +54,18 @@ public class MagnetWalker : MonoBehaviour
 
     private void HandleActivation()
     {
-        bool sprintPressed = allowSprintAction && _inputs != null && _inputs.sprint;
-
         if (useToggle)
         {
-            if ((_inputs.magnetise || (sprintPressed && !_toggleLatch)))
+            if (_inputs.magnetise)
             {
-                _toggleLatch = true;
                 if (_magnetActive) Detach();
                 else TryAttach();
             }
-            if (_inputs != null && !_inputs.sprint) _toggleLatch = false;
         }
         else
         {
-            if ((_inputs.magnetise || sprintPressed) && !_magnetActive) TryAttach();
-            if (!sprintPressed && _magnetActive) Detach();
-        }
-
-        if (_magnetActive && _inputs != null && _inputs.jump)
-        {
-            Detach();
-            _inputs.JumpInput(false);
+            if (_inputs.magnetise && !_magnetActive) TryAttach();
+            if (_magnetActive) Detach();
         }
 
         // reset magnetise regardless of what happened
@@ -113,16 +88,6 @@ public class MagnetWalker : MonoBehaviour
             _currentNormal = hit.normal;
             _lastNormal = hit.normal;
 
-            if (_cameraTarget != null)
-            {
-                _savedCamLocalRot = _cameraTarget.localRotation;
-                Vector3 fFlat = Vector3.ProjectOnPlane(GetAimForward(), _currentNormal).normalized;
-                if (fFlat.sqrMagnitude < 1e-4f) fFlat = Vector3.forward;
-                _yaw = SignedAngleOnPlane(transform.forward, fFlat, _currentNormal);
-                _pitch = Mathf.Asin(Vector3.Dot(GetAimForward(), _currentNormal)) * Mathf.Rad2Deg;
-            }
-
-            _smoothedMove = Vector2.zero;
             _lostTimer = 0f;
             _magnetActive = true;
 
@@ -136,13 +101,6 @@ public class MagnetWalker : MonoBehaviour
 
     private void Detach()
     {
-        if (_cameraTarget != null)
-        {
-            _cameraTarget.localRotation = _savedCamLocalRot;
-            var e = _cameraTarget.localEulerAngles;
-            _cameraTarget.localRotation = Quaternion.Euler(e.x, 0f, 0f);
-        }
-
         if (alignToWorldUpOnDetach)
         {
             Vector3 flatFwd = Vector3.ProjectOnPlane(GetAimForward(), Vector3.up);
@@ -256,7 +214,7 @@ public class MagnetWalker : MonoBehaviour
                 if (!string.IsNullOrEmpty(magneticTag) && !col.CompareTag(magneticTag)) continue;
 
                 Vector3 closest = col.ClosestPoint(origin);
-                Vector3 dir = (closest - origin);
+                Vector3 dir = closest - origin;
                 float dist = dir.magnitude;
                 if (dist < 1e-4f) continue;
                 dir /= dist;
@@ -281,12 +239,6 @@ public class MagnetWalker : MonoBehaviour
     // --- helpers ---
     private Vector3 GetAimForward() => _cameraTarget ? _cameraTarget.forward : transform.forward;
     private static Vector3 ProjectOnPlane(Vector3 v, Vector3 n) => v - Vector3.Dot(v, n) * n;
-    private static float SignedAngleOnPlane(Vector3 from, Vector3 to, Vector3 n)
-    {
-        Vector3 f = ProjectOnPlane(from, n).normalized;
-        Vector3 t = ProjectOnPlane(to, n).normalized;
-        return Vector3.SignedAngle(f, t, n);
-    }
 
     void OnDrawGizmosSelected()
     {
