@@ -8,7 +8,6 @@ public class MagnetWalker : MonoBehaviour
     public string magneticTag = "";
     public bool useToggle = true;
     public bool allowSprintAction = true;
-    public KeyCode attachKey = KeyCode.E;
 
     [Header("Robust surface detection")]
     public float detectRadius = 2.5f;
@@ -70,12 +69,11 @@ public class MagnetWalker : MonoBehaviour
 
     private void HandleActivation()
     {
-        bool keyDown = Input.GetKeyDown(attachKey);
         bool sprintPressed = allowSprintAction && _inputs != null && _inputs.sprint;
 
         if (useToggle)
         {
-            if ((keyDown || (sprintPressed && !_toggleLatch)))
+            if ((_inputs.magnetise || (sprintPressed && !_toggleLatch)))
             {
                 _toggleLatch = true;
                 if (_magnetActive) Detach();
@@ -85,7 +83,7 @@ public class MagnetWalker : MonoBehaviour
         }
         else
         {
-            if ((keyDown || sprintPressed) && !_magnetActive) TryAttach();
+            if ((_inputs.magnetise || sprintPressed) && !_magnetActive) TryAttach();
             if (!sprintPressed && _magnetActive) Detach();
         }
 
@@ -94,6 +92,9 @@ public class MagnetWalker : MonoBehaviour
             Detach();
             _inputs.JumpInput(false);
         }
+
+        // reset magnetise regardless of what happened
+        _inputs.magnetise = false;
     }
 
     private void TryAttach()

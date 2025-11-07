@@ -8,6 +8,7 @@ public class PlayerInputs : MonoBehaviour
 	public Vector2 look;
 	public bool jump;
 	public bool sprint;
+	public bool magnetise;
 
 	[Header("Movement Settings")]
 	public bool analogMovement;
@@ -37,6 +38,11 @@ public class PlayerInputs : MonoBehaviour
 	public void OnSprint(InputValue value)
 	{
 		sprint = value.isPressed;
+	}
+
+	public void OnMagnetise(InputValue value)
+	{
+		magnetise = value.isPressed;
 	}
 
 	private void OnApplicationFocus(bool hasFocus)

@@ -430,6 +430,7 @@ MonoBehaviour:
   look: {x: 0, y: 0}
   jump: 0
   sprint: 0
+  magnetise: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1
@@ -451,7 +452,6 @@ MonoBehaviour:
   magneticTag: 
   useToggle: 1
   allowSprintAction: 1
-  attachKey: 101
   detectRadius: 2.5
   probeRadius: 0.35
   queriesHitBackfaces: 1
