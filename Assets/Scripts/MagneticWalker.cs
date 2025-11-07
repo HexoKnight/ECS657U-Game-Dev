@@ -50,6 +50,7 @@ public class MagnetWalker : MonoBehaviour
     {
         HandleActivation();
         if (_magnetActive) TickMagnet();
+        AlignUp();
     }
 
     private void HandleActivation()
@@ -70,6 +71,14 @@ public class MagnetWalker : MonoBehaviour
 
         // reset magnetise regardless of what happened
         _inputs.magnetise = false;
+    }
+
+    private void AlignUp()
+    {
+        if (transform.up == _currentNormal) return;
+
+        Quaternion targetUp = Quaternion.FromToRotation(transform.up, _currentNormal) * transform.rotation;
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetUp, Time.deltaTime * alignUpSlerp);
     }
 
     private void TryAttach()
@@ -103,10 +112,7 @@ public class MagnetWalker : MonoBehaviour
     {
         if (alignToWorldUpOnDetach)
         {
-            Vector3 flatFwd = Vector3.ProjectOnPlane(GetAimForward(), Vector3.up);
-            if (flatFwd.sqrMagnitude < 1e-4f) flatFwd = transform.forward;
-            float yaw = Quaternion.LookRotation(flatFwd, Vector3.up).eulerAngles.y;
-            transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+            _currentNormal = Vector3.up;
         }
 
         _magnetActive = false;
@@ -149,10 +155,6 @@ public class MagnetWalker : MonoBehaviour
             return;
         }
         _lastNormal = _currentNormal;
-
-        // --- align player up to wall ---
-        Quaternion targetUp = Quaternion.FromToRotation(transform.up, _currentNormal) * transform.rotation;
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetUp, Time.deltaTime * alignUpSlerp);
     }
 
     // --- primary lock while attached: cast from chest along -currentNormal ---
@@ -238,7 +240,6 @@ public class MagnetWalker : MonoBehaviour
 
     // --- helpers ---
     private Vector3 GetAimForward() => _cameraTarget ? _cameraTarget.forward : transform.forward;
-    private static Vector3 ProjectOnPlane(Vector3 v, Vector3 n) => v - Vector3.Dot(v, n) * n;
 
     void OnDrawGizmosSelected()
     {
