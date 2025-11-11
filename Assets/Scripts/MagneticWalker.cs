@@ -127,7 +127,7 @@ public class MagnetWalker : MonoBehaviour
             _lostTimer = 0f;
         }
 
-        _playerController.targetUp = hit.normal;
+        _playerController.targetUp = (transform.position - hit.point).normalized;
     }
 
     // --- primary lock while attached: cast from chest along -currentNormal ---
