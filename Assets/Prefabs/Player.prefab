@@ -393,7 +393,7 @@ MonoBehaviour:
     m_Bits: 256
   magneticTag: 
   useToggle: 1
-  detectRadius: 2.5
+  detectRadius: 3.5
   probeRadius: 0.35
   queriesHitBackfaces: 1
   minSurfaceTiltFromUp: 25
