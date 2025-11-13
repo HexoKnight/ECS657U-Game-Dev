@@ -8,6 +8,7 @@ public class PlayerInputs : MonoBehaviour
 	public Vector2 look;
 	public bool jump;
 	public bool sprint;
+	public bool magnetise;
 
 	[Header("Movement Settings")]
 	public bool analogMovement;
@@ -18,55 +19,35 @@ public class PlayerInputs : MonoBehaviour
 
 	public void OnMove(InputValue value)
 	{
-		MoveInput(value.Get<Vector2>());
+		move = value.Get<Vector2>();
 	}
 
 	public void OnLook(InputValue value)
 	{
 		if (cursorInputForLook)
 		{
-			LookInput(value.Get<Vector2>());
+			look = value.Get<Vector2>();
 		}
 	}
 
 	public void OnJump(InputValue value)
 	{
-		JumpInput(value.isPressed);
+		jump = value.isPressed;
 	}
 
 	public void OnSprint(InputValue value)
 	{
-		SprintInput(value.isPressed);
+		sprint = value.isPressed;
 	}
 
-
-	public void MoveInput(Vector2 newMoveDirection)
+	public void OnMagnetise(InputValue value)
 	{
-		move = newMoveDirection;
-	}
-
-	public void LookInput(Vector2 newLookDirection)
-	{
-		look = newLookDirection;
-	}
-
-	public void JumpInput(bool newJumpState)
-	{
-		jump = newJumpState;
-	}
-
-	public void SprintInput(bool newSprintState)
-	{
-		sprint = newSprintState;
+		magnetise = value.isPressed;
 	}
 
 	private void OnApplicationFocus(bool hasFocus)
 	{
-		SetCursorState(cursorLocked);
-	}
-
-	private void SetCursorState(bool newState)
-	{
-		Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
+		// enforce cursor lockState on focus change (regardless of whether we are gaining or losing it)
+		Cursor.lockState = cursorLocked ? CursorLockMode.Locked : CursorLockMode.None;
 	}
 }
