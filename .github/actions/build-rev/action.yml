@@ -1,0 +1,85 @@
+name: Build Rev
+description: |
+  Build a specific rev
+
+inputs:
+  rev:
+    required: true
+  out-path:
+    required: true
+
+  UNITY_LICENSE:
+    required: true
+  UNITY_EMAIL:
+    required: true
+  UNITY_PASSWORD:
+    required: true
+
+runs:
+  using: composite
+  steps:
+      # remove unnecessary files to make space for docker image restoring/caching
+      # the files were chosen based on size and how unlikley they were to be required
+    - run: |
+        sudo rm -rf /usr/local/lib/android /usr/local/.ghcup /usr/share/dotnet /usr/local/julia*
+      shell: bash
+
+    - name: Checkout repo
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.rev }}
+        path: repo
+
+    - name: Checkout rev
+      run: git checkout ${{ inputs.rev }}
+      shell: bash
+      working-directory: repo
+
+    - id: cache-library
+      uses: actions/cache/restore@v4
+      env:
+        packages-hash:         ${{ hashFiles('repo/Packages/**') }}
+        project-settings-hash: ${{ hashFiles('repo/ProjectSettings/**') }}
+      with:
+        path: repo/Library
+        key: Library-${{ env.packages-hash }}-${{ env.project-settings-hash }}
+        restore-keys: |
+          Library-${{ env.packages-hash }}-
+          Library-
+
+    - name: Cache Docker images.
+      # until the following is fixed:
+      # https://github.com/ScribeMD/docker-cache/issues/831
+      # uses: ScribeMD/docker-cache@0.5.0
+      uses: AndreKurait/docker-cache@0.6.0
+      with:
+        key: unity-docker-${{ hashFiles('repo/ProjectSettings/ProjectVersion.txt') }}
+
+    - id: build
+      uses: game-ci/unity-builder@v4
+      env:
+        UNITY_LICENSE:  ${{ inputs.UNITY_LICENSE }}
+        UNITY_EMAIL:    ${{ inputs.UNITY_EMAIL }}
+        UNITY_PASSWORD: ${{ inputs.UNITY_PASSWORD }}
+      with:
+        projectPath: repo
+        targetPlatform: WebGL
+        buildsPath: build
+
+    - if: steps.cache-library.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        path: repo/Library
+        key: ${{ steps.cache-library.outputs.cache-primary-key }}
+
+      # remove unnecessary files to make space for docker image caching
+      # need to keep repo/ProjectSettings for docker image cache key calculation
+    - run: |
+        sudo rm -rf repo/.git repo/Assets repo/Library
+      shell: bash
+
+      # unity-builder chownFilesTo doesn't seem to work so use sudo instead
+    - run: |
+        mkdir -p ${{ inputs.out-path }}
+        sudo mv -T build/WebGL/WebGL ${{ inputs.out-path }}
+      shell: bash

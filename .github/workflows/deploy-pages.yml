@@ -1,0 +1,100 @@
+name: Deploy all versions to pages
+
+on: workflow_dispatch
+
+jobs:
+  gather-info:
+    runs-on: ubuntu-latest
+    outputs:
+      infos: ${{ steps.get-refs.outputs.refs }}
+    steps:
+      - id: get-refs
+        run: |
+          # hashes and full refs
+          git ls-remote --heads --tags https://github.com/${{ github.repository }}.git |
+          tee /dev/stderr |
+          # capure: [1] refs/[heads/tags]/[3]
+          # and produce: {"ref": "[3]", "rev": "[1]"}
+          sed -Ee 's@^([a-z0-9]+)\s+refs/(heads|tags)/(.*)$@{"ref":"\3","rev":"\1"}@' |
+          # prepend refs=[ to first line
+          # append , to all but last line
+          # append ] to last line
+          sed -Ee '1s/^/refs=[/; $!s/$/,/; $s/$/]/' |
+          # remove newlines
+          tr -d '\n' |
+          tee --append "$GITHUB_OUTPUT"
+
+  build-each-ref:
+    needs: gather-info
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        info: ${{ fromJSON(needs.gather-info.outputs.infos) }}
+      max-parallel: 1
+    steps:
+      - name: Checkout .github/actions
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/actions
+          path: actions-repo
+
+      - id: restore-build
+        uses: actions/cache/restore@v4
+        with:
+          path: builds/${{ matrix.info.ref }}
+          key: build-${{ matrix.info.rev }}
+
+      - if: steps.restore-build.outputs.cache-hit != 'true'
+        name: Build
+        uses: ./actions-repo/.github/actions/build-rev
+        with:
+          rev: ${{ matrix.info.rev }}
+          out-path: builds/${{ matrix.info.ref }}
+
+          UNITY_LICENSE:  ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL:    ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+
+      - if: steps.restore-build.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: builds/${{ matrix.info.ref }}
+          key: ${{ steps.restore-build.outputs.cache-primary-key }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: builds
+          name: Build-${{ github.run_id }}-${{ matrix.info.rev }}
+          retention-days: 1
+
+  upload-collected-builds:
+    needs: build-each-ref
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all builds
+        uses: actions/download-artifact@v5
+        with:
+          path: builds
+          pattern: Build-${{ github.run_id }}-*
+          merge-multiple: true
+
+      - name: Upload all builds as artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: builds
+
+  deploy-pages:
+    needs: upload-collected-builds
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
