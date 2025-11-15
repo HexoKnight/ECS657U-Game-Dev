@@ -1,7 +1,7 @@
 using System.Collections;
 using UnityEngine;
-using Cinemachine;
 using StarterAssets; // Starter Assets First Person Controller / Inputs
+using Unity.Cinemachine;
 
 /// <summary>
 /// Monta al jugador en un CinemachineDollyCart al entrar en un SphereCollider (IsTrigger),
