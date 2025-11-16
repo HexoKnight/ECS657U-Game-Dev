@@ -127,6 +127,7 @@ GameObject:
   - component: {fileID: 4452545593638996577}
   - component: {fileID: 7446226978208146898}
   - component: {fileID: 72657800787333094}
+  - component: {fileID: 1161850358760125702}
   - component: {fileID: 6923868343927760116}
   - component: {fileID: 263305816712802819}
   m_Layer: 0
@@ -261,6 +262,33 @@ MonoBehaviour:
   maxNormalChangeToDetach: 55
   debugLogging: 1
   drawGizmos: 1
+--- !u!54 &1161850358760125702
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6561977984014106555}
+  serializedVersion: 4
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!136 &6923868343927760116
 CapsuleCollider:
   m_ObjectHideFlags: 8
@@ -334,6 +362,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3711654935129127260}
     m_Modifications:
+    - target: {fileID: -1861128292331685191, guid: b1eefa4313235217aa0cfacdd7b31773, type: 3}
+      propertyPath: BlendHint
+      value: 32
+      objectReference: {fileID: 0}
+    - target: {fileID: -1861128292331685191, guid: b1eefa4313235217aa0cfacdd7b31773, type: 3}
+      propertyPath: Priority.Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -1861128292331685191, guid: b1eefa4313235217aa0cfacdd7b31773, type: 3}
+      propertyPath: Target.TrackingTarget
+      value: 
+      objectReference: {fileID: 122406705304090264}
     - target: {fileID: 1064305161864204891, guid: b1eefa4313235217aa0cfacdd7b31773, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
+using UnityEngine.Splines;
 
 using KinematicCharacterController;
 
@@ -15,6 +16,7 @@ public class PlayerController : MonoBehaviour, ICharacterController
     enum PlayerState
     {
         Normal,
+        StaticSpline,
     }
 
     [Header("Player")]
@@ -80,12 +82,40 @@ public class PlayerController : MonoBehaviour, ICharacterController
     private float _timeSinceJumpRequested = float.PositiveInfinity;
     private float _timeSinceLastAbleToJump = 0f;
 
+    // player state - static spline
+    private SplineContainer _currentPath;
+    private System.Action _pathFinishCallback;
+    private float _pathSpeed;
+    private float _distanceAlongPath;
+
     // components
     private KinematicCharacterMotor _motor;
     private PlayerInput _playerInput;
     private PlayerInputs _input;
 
     private bool IsCurrentDeviceMouse => _playerInput.currentControlScheme == "KeyboardMouse";
+
+    public void StartStaticSplineStart(SplineContainer splineContainer, float speed, System.Action finishCallback)
+    {
+        _currentPath = splineContainer;
+        _pathFinishCallback = finishCallback;
+        _pathSpeed = speed;
+        _distanceAlongPath = 0;
+
+        _playerState = PlayerState.StaticSpline;
+    }
+
+    public void ResetNormalState()
+    {
+        _jumpedThisFrame = false;
+        _jumpConsumed = false;
+        _timeSinceJumpRequested = float.PositiveInfinity;
+        _timeSinceLastAbleToJump = 0f;
+
+        _playerState = PlayerState.Normal;
+    }
+
+    // INTERNAL
 
     private void Awake()
     {
@@ -99,6 +129,30 @@ public class PlayerController : MonoBehaviour, ICharacterController
     private void FixedUpdate()
     {
         DeadZoneCheck();
+
+        switch (_playerState)
+        {
+            case PlayerState.StaticSpline:
+                float pathLength = _currentPath.CalculateLength();
+
+                _distanceAlongPath = System.Math.Min(pathLength, _distanceAlongPath + _pathSpeed * Time.deltaTime);
+
+                float ratio = _distanceAlongPath / pathLength;
+
+                _currentPath.Evaluate(ratio, out var position, out var tangent, out var upVector);
+
+                Quaternion rotation = Quaternion.LookRotation(tangent, upVector);
+
+                _motor.SetPositionAndRotation(position, rotation, false);
+
+                if (ratio == 1f)
+                {
+                    _pathFinishCallback();
+                    ResetNormalState();
+                }
+
+                break;
+        }
     }
 
     private void LateUpdate()
@@ -276,6 +330,9 @@ public class PlayerController : MonoBehaviour, ICharacterController
                 //     _internalVelocityAdd = Vector3.zero;
                 // }
 
+                break;
+            case PlayerState.StaticSpline:
+                currentVelocity = Vector3.zero;
                 break;
         }
     }
