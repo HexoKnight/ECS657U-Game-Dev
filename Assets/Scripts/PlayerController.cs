@@ -12,322 +12,356 @@ using KinematicCharacterController;
 [RequireComponent(typeof(PlayerInputs))]
 public class PlayerController : MonoBehaviour, ICharacterController
 {
-	[Header("Player")]
-	[Tooltip("Move speed of the character on the ground in m/s")]
-	public float maxGroundMoveSpeed = 4f;
-	[Tooltip("How much faster the character is when sprinting")]
-	public float sprintSpeedMultiplier = 1.5f;
-	[Tooltip("Move speed of the character in the air in m/s")]
-	public float maxAirMoveSpeed = 4f;
-	[Tooltip("Acceleration and deceleration when grounded")]
-	public float groundAcceleration = 10f;
-	[Tooltip("Acceleration and deceleration when in the air")]
-	public float airAcceleration = 10f;
-	[Tooltip("Coyote time (time after leaving the ground during which you can still jump)")]
-	public float JumpPostGroundingGraceTime = 0f;
-	[Tooltip("Reverse Coyote time (time before landing on the ground during which you can queue a jump)")]
-	public float JumpPreGroundingGraceTime = 0f;
-	[Tooltip("The amount (relative to the current max movement speed) to boost the character in the direction of movement when they jump")]
-	public float JumpBoostSpeed = 0.25f;
+    enum PlayerState
+    {
+        Normal,
+    }
 
-	[Space(10)]
-	[Tooltip("The height the player can jump")]
-	public float jumpHeight = 1.2f;
-	[Tooltip("The character uses its own gravity value. The engine default is -9.81f")]
-	public float gravity = -15f;
-	[Tooltip("If the character uses gravity")]
-	public bool useGravity = true;
-	[Tooltip("The y-value, below which the scene will reload (ie. game restart)")]
-	public float deadZone = -15;
+    [Header("Player")]
+    [Tooltip("Move speed of the character on the ground in m/s")]
+    public float maxGroundMoveSpeed = 4f;
+    [Tooltip("How much faster the character is when sprinting")]
+    public float sprintSpeedMultiplier = 1.5f;
+    [Tooltip("Move speed of the character in the air in m/s")]
+    public float maxAirMoveSpeed = 4f;
+    [Tooltip("Acceleration and deceleration when grounded")]
+    public float groundAcceleration = 10f;
+    [Tooltip("Acceleration and deceleration when in the air")]
+    public float airAcceleration = 10f;
+    [Tooltip("Coyote time (time after leaving the ground during which you can still jump)")]
+    public float JumpPostGroundingGraceTime = 0f;
+    [Tooltip("Reverse Coyote time (time before landing on the ground during which you can queue a jump)")]
+    public float JumpPreGroundingGraceTime = 0f;
+    [Tooltip("The amount (relative to the current max movement speed) to boost the character in the direction of movement when they jump")]
+    public float JumpBoostSpeed = 0.25f;
 
-	[Tooltip("If the character can jump while they are sliding down a steep slope")]
-	public bool allowJumpingWhenSliding = true;
+    [Space(10)]
+    [Tooltip("The height the player can jump")]
+    public float jumpHeight = 1.2f;
+    [Tooltip("The character uses its own gravity value. The engine default is -9.81f")]
+    public float gravity = -15f;
+    [Tooltip("If the character uses gravity")]
+    public bool useGravity = true;
+    [Tooltip("The y-value, below which the scene will reload (ie. game restart)")]
+    public float deadZone = -15;
 
-	[Header("Cinemachine")]
-	[Tooltip("Rotation speed of the camera")]
-	public float rotationSpeed = 1f;
-	[Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
-	public Transform cinemachineCameraTarget;
-	[Tooltip("How far in degrees can you move the camera up")]
-	[Range(0, 90)]
-	public float topClamp = 90.0f;
-	[Tooltip("How far in degrees can you move the camera down")]
-	[Range(-90, 0)]
-	public float bottomClamp = -90.0f;
+    [Tooltip("If the character can jump while they are sliding down a steep slope")]
+    public bool allowJumpingWhenSliding = true;
 
-	[Header("Other")]
-	[Tooltip("The world space up vector the player is currently trying to achieve")]
-	public Vector3 targetUp = Vector3.up;
-	[Tooltip("The speed at which the player aligns to the target up")]
-	public float alignUpSpeed = 12f;
+    [Header("Cinemachine")]
+    [Tooltip("Rotation speed of the camera")]
+    public float rotationSpeed = 1f;
+    [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
+    public Transform cinemachineCameraTarget;
+    [Tooltip("How far in degrees can you move the camera up")]
+    [Range(0, 90)]
+    public float topClamp = 90.0f;
+    [Tooltip("How far in degrees can you move the camera down")]
+    [Range(-90, 0)]
+    public float bottomClamp = -90.0f;
 
-	[Header("Internal")]
+    [Header("Other")]
+    [Tooltip("The world space up vector the player is currently trying to achieve")]
+    public Vector3 targetUp = Vector3.up;
+    [Tooltip("The speed at which the player aligns to the target up")]
+    public float alignUpSpeed = 12f;
 
-	// cinemachine
-	private float _cinemachineTargetPitch;
+    [Header("Internal")]
 
-	// player
-	private bool _jumpedThisFrame = false;
-	private bool _jumpConsumed = false;
-	private float _timeSinceJumpRequested = float.PositiveInfinity;
-	private float _timeSinceLastAbleToJump = 0f;
+    // cinemachine
+    private float _cinemachineTargetPitch;
 
-	// components
-	private KinematicCharacterMotor _motor;
-	private PlayerInput _playerInput;
-	private PlayerInputs _input;
+    // player state
+    private PlayerState _playerState = PlayerState.Normal;
 
-	private bool IsCurrentDeviceMouse => _playerInput.currentControlScheme == "KeyboardMouse";
+    // player state - normal
+    private bool _jumpedThisFrame = false;
+    private bool _jumpConsumed = false;
+    private float _timeSinceJumpRequested = float.PositiveInfinity;
+    private float _timeSinceLastAbleToJump = 0f;
 
-	private void Awake()
-	{
-		_motor = GetComponent<KinematicCharacterMotor>();
-		_input = GetComponent<PlayerInputs>();
-		_playerInput = GetComponent<PlayerInput>();
+    // components
+    private KinematicCharacterMotor _motor;
+    private PlayerInput _playerInput;
+    private PlayerInputs _input;
 
-		_motor.CharacterController = this;
-	}
+    private bool IsCurrentDeviceMouse => _playerInput.currentControlScheme == "KeyboardMouse";
 
-	private void FixedUpdate()
-	{
-		DeadZoneCheck();
-	}
+    private void Awake()
+    {
+        _motor = GetComponent<KinematicCharacterMotor>();
+        _input = GetComponent<PlayerInputs>();
+        _playerInput = GetComponent<PlayerInput>();
 
-	private void LateUpdate()
-	{
-		CameraRotation();
-	}
+        _motor.CharacterController = this;
+    }
 
-	private void DeadZoneCheck()
-	{
-		if (transform.position.y < deadZone)
-		{
-			SceneManager.LoadScene(SceneManager.GetActiveScene().name);
-		}
-	}
+    private void FixedUpdate()
+    {
+        DeadZoneCheck();
+    }
 
-	private void CameraRotation()
-	{
-		//Don't multiply mouse input by Time.deltaTime
-		float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
+    private void LateUpdate()
+    {
+        CameraRotation();
+    }
 
-		_cinemachineTargetPitch += _input.look.y * rotationSpeed * deltaTimeMultiplier;
-		float yawVelocity = _input.look.x * rotationSpeed * deltaTimeMultiplier;
+    private void DeadZoneCheck()
+    {
+        if (transform.position.y < deadZone)
+        {
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+    }
 
-		// clamp our pitch rotation
-		_cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);
+    private void CameraRotation()
+    {
+        switch (_playerState)
+        {
+            case PlayerState.Normal:
+                //Don't multiply mouse input by Time.deltaTime
+                float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
-		// Update Cinemachine camera target pitch
-		cinemachineCameraTarget.localRotation = Quaternion.Euler(_cinemachineTargetPitch, cinemachineCameraTarget.localRotation.eulerAngles.y + yawVelocity, 0.0f);
-	}
+                _cinemachineTargetPitch += _input.look.y * rotationSpeed * deltaTimeMultiplier;
+                float yawVelocity = _input.look.x * rotationSpeed * deltaTimeMultiplier;
 
-	private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
-	{
-		if (lfAngle < -360f) lfAngle += 360f;
-		if (lfAngle > 360f) lfAngle -= 360f;
-		return Mathf.Clamp(lfAngle, lfMin, lfMax);
-	}
+                // clamp our pitch rotation
+                _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);
 
-	public void UpdateRotation(ref Quaternion currentRotation, float deltaTime)
-	{
-		Vector3 cameraEulerAngles = cinemachineCameraTarget.localRotation.eulerAngles;
-		currentRotation *= Quaternion.Euler(0, cameraEulerAngles.y, 0);
-		cameraEulerAngles.y = 0;
-		cinemachineCameraTarget.localRotation = Quaternion.Euler(cameraEulerAngles);
+                // Update Cinemachine camera target pitch
+                cinemachineCameraTarget.localRotation = Quaternion.Euler(_cinemachineTargetPitch, cinemachineCameraTarget.localRotation.eulerAngles.y + yawVelocity, 0.0f);
 
-		Vector3 currentUp = currentRotation * Vector3.up;
-		Vector3 smoothedUp = Vector3.Slerp(currentUp, targetUp, 1 - Mathf.Exp(-alignUpSpeed * deltaTime));
-		currentRotation = Quaternion.FromToRotation(currentUp, smoothedUp) * currentRotation;
-	}
+                break;
+        }
+    }
 
-	public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
-	{
-		Vector3 moveInputVector = transform.TransformVector(new Vector3(_input.move.x, 0, _input.move.y));
-		if (!_input.analogMovement) moveInputVector.Normalize();
+    private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
+    {
+        if (lfAngle < -360f) lfAngle += 360f;
+        if (lfAngle > 360f) lfAngle -= 360f;
+        return Mathf.Clamp(lfAngle, lfMin, lfMax);
+    }
 
-		float currentMaxGroundSpeed = moveInputVector.magnitude * maxGroundMoveSpeed;
-		if (_input.sprint) currentMaxGroundSpeed *= sprintSpeedMultiplier;
+    /// this function is the only place where rotation can be changed
+    public void UpdateRotation(ref Quaternion currentRotation, float deltaTime)
+    {
+        switch (_playerState)
+        {
+            case PlayerState.Normal:
+                Vector3 cameraEulerAngles = cinemachineCameraTarget.localRotation.eulerAngles;
+                currentRotation *= Quaternion.Euler(0, cameraEulerAngles.y, 0);
+                cameraEulerAngles.y = 0;
+                cinemachineCameraTarget.localRotation = Quaternion.Euler(cameraEulerAngles);
 
-		// Ground movement
-		if (_motor.GroundingStatus.IsStableOnGround)
-		{
-			float currentVelocityMagnitude = currentVelocity.magnitude;
+                Vector3 currentUp = currentRotation * Vector3.up;
+                Vector3 smoothedUp = Vector3.Slerp(currentUp, targetUp, 1 - Mathf.Exp(-alignUpSpeed * deltaTime));
+                currentRotation = Quaternion.FromToRotation(currentUp, smoothedUp) * currentRotation;
 
-			Vector3 effectiveGroundNormal = _motor.GroundingStatus.GroundNormal;
+                break;
+        }
+    }
 
-			// Reorient velocity on slope
-			currentVelocity = _motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) * currentVelocityMagnitude;
+    /// this function is the only place where velocity can be changed
+    public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
+    {
+        switch (_playerState)
+        {
+            case PlayerState.Normal:
+                Vector3 moveInputVector = transform.TransformVector(new Vector3(_input.move.x, 0, _input.move.y));
+                if (!_input.analogMovement) moveInputVector.Normalize();
 
-			// Calculate target velocity
-			Vector3 inputRight = Vector3.Cross(moveInputVector, _motor.CharacterUp);
-			Vector3 reorientedForward = Vector3.Cross(effectiveGroundNormal, inputRight).normalized;
-			Vector3 targetMovementVelocity = reorientedForward * currentMaxGroundSpeed;
+                float currentMaxGroundSpeed = moveInputVector.magnitude * maxGroundMoveSpeed;
+                if (_input.sprint) currentMaxGroundSpeed *= sprintSpeedMultiplier;
 
-			// Smooth movement Velocity
-			currentVelocity = Vector3.Lerp(currentVelocity, targetMovementVelocity, 1f - Mathf.Exp(-groundAcceleration * deltaTime));
-		}
-		// Air movement
-		else
-		{
-			// Add move input
-			if (moveInputVector.sqrMagnitude > 0f)
-			{
-				Vector3 addedVelocity = moveInputVector * airAcceleration * deltaTime;
+                // Ground movement
+                if (_motor.GroundingStatus.IsStableOnGround)
+                {
+                    float currentVelocityMagnitude = currentVelocity.magnitude;
 
-				Vector3 currentVelocityOnInputsPlane = Vector3.ProjectOnPlane(currentVelocity, _motor.CharacterUp);
+                    Vector3 effectiveGroundNormal = _motor.GroundingStatus.GroundNormal;
 
-				// Limit air velocity from inputs
-				if (currentVelocityOnInputsPlane.magnitude < maxAirMoveSpeed)
-				{
-					// clamp addedVel to make total vel not exceed max vel on inputs plane
-					Vector3 newTotal = Vector3.ClampMagnitude(currentVelocityOnInputsPlane + addedVelocity, maxAirMoveSpeed);
-					addedVelocity = newTotal - currentVelocityOnInputsPlane;
-				}
-				else
-				{
-					// Make sure added vel doesn't go in the direction of the already-exceeding velocity
-					if (Vector3.Dot(currentVelocityOnInputsPlane, addedVelocity) > 0f)
-					{
-						addedVelocity = Vector3.ProjectOnPlane(addedVelocity, currentVelocityOnInputsPlane.normalized);
-					}
-				}
+                    // Reorient velocity on slope
+                    currentVelocity = _motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) * currentVelocityMagnitude;
 
-				// Prevent air-climbing sloped walls
-				if (_motor.GroundingStatus.FoundAnyGround)
-				{
-					if (Vector3.Dot(currentVelocity + addedVelocity, addedVelocity) > 0f)
-					{
-						Vector3 perpenticularObstructionNormal = Vector3.Cross(Vector3.Cross(_motor.CharacterUp, _motor.GroundingStatus.GroundNormal), _motor.CharacterUp).normalized;
-						addedVelocity = Vector3.ProjectOnPlane(addedVelocity, perpenticularObstructionNormal);
-					}
-				}
+                    // Calculate target velocity
+                    Vector3 inputRight = Vector3.Cross(moveInputVector, _motor.CharacterUp);
+                    Vector3 reorientedForward = Vector3.Cross(effectiveGroundNormal, inputRight).normalized;
+                    Vector3 targetMovementVelocity = reorientedForward * currentMaxGroundSpeed;
 
-				// Apply added velocity
-				currentVelocity += addedVelocity;
-			}
+                    // Smooth movement Velocity
+                    currentVelocity = Vector3.Lerp(currentVelocity, targetMovementVelocity, 1f - Mathf.Exp(-groundAcceleration * deltaTime));
+                }
+                // Air movement
+                else
+                {
+                    // Add move input
+                    if (moveInputVector.sqrMagnitude > 0f)
+                    {
+                        Vector3 addedVelocity = moveInputVector * airAcceleration * deltaTime;
 
-			// Gravity
-			if (useGravity) currentVelocity += _motor.CharacterUp * gravity * deltaTime;
+                        Vector3 currentVelocityOnInputsPlane = Vector3.ProjectOnPlane(currentVelocity, _motor.CharacterUp);
 
-			// Drag
-			// currentVelocity *= 1f / (1f + (Drag * deltaTime));
-		}
+                        // Limit air velocity from inputs
+                        if (currentVelocityOnInputsPlane.magnitude < maxAirMoveSpeed)
+                        {
+                            // clamp addedVel to make total vel not exceed max vel on inputs plane
+                            Vector3 newTotal = Vector3.ClampMagnitude(currentVelocityOnInputsPlane + addedVelocity, maxAirMoveSpeed);
+                            addedVelocity = newTotal - currentVelocityOnInputsPlane;
+                        }
+                        else
+                        {
+                            // Make sure added vel doesn't go in the direction of the already-exceeding velocity
+                            if (Vector3.Dot(currentVelocityOnInputsPlane, addedVelocity) > 0f)
+                            {
+                                addedVelocity = Vector3.ProjectOnPlane(addedVelocity, currentVelocityOnInputsPlane.normalized);
+                            }
+                        }
 
-		// Handle jumping
-		_jumpedThisFrame = false;
-		_timeSinceJumpRequested += deltaTime;
-		if (_input.jump)
-		{
-			// See if we actually are allowed to jump
-			if (!_jumpConsumed && ((allowJumpingWhenSliding ? _motor.GroundingStatus.FoundAnyGround : _motor.GroundingStatus.IsStableOnGround) || _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
-			{
-				// Calculate jump direction before ungrounding
-				Vector3 jumpDirection = _motor.CharacterUp;
-				if (_motor.GroundingStatus.FoundAnyGround && !_motor.GroundingStatus.IsStableOnGround)
-				{
-					jumpDirection = _motor.GroundingStatus.GroundNormal;
-				}
+                        // Prevent air-climbing sloped walls
+                        if (_motor.GroundingStatus.FoundAnyGround)
+                        {
+                            if (Vector3.Dot(currentVelocity + addedVelocity, addedVelocity) > 0f)
+                            {
+                                Vector3 perpenticularObstructionNormal = Vector3.Cross(Vector3.Cross(_motor.CharacterUp, _motor.GroundingStatus.GroundNormal), _motor.CharacterUp).normalized;
+                                addedVelocity = Vector3.ProjectOnPlane(addedVelocity, perpenticularObstructionNormal);
+                            }
+                        }
 
-				// Makes the character skip ground probing/snapping on its next update. 
-				// If this line weren't here, the character would remain snapped to the ground when trying to jump. Try commenting this line out and see.
-				_motor.ForceUnground();
+                        // Apply added velocity
+                        currentVelocity += addedVelocity;
+                    }
 
-				// the square root of H * -2 * G = how much velocity needed to reach desired height
-				float jumpSpeed = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                    // Gravity
+                    if (useGravity) currentVelocity += _motor.CharacterUp * gravity * deltaTime;
 
-				// Add to the return velocity and reset jump state
-				currentVelocity += (jumpDirection * jumpSpeed) - Vector3.Project(currentVelocity, _motor.CharacterUp);
-				currentVelocity += moveInputVector.normalized * JumpBoostSpeed * currentMaxGroundSpeed;
-				_input.jump = false;
-				_jumpConsumed = true;
-				_jumpedThisFrame = true;
-			}
-		}
+                    // Drag
+                    // currentVelocity *= 1f / (1f + (Drag * deltaTime));
+                }
 
-		// // Take into account additive velocity
-		// if (_internalVelocityAdd.sqrMagnitude > 0f)
-		// {
-		// 	currentVelocity += _internalVelocityAdd;
-		// 	_internalVelocityAdd = Vector3.zero;
-		// }
-	}
+                // Handle jumping
+                _jumpedThisFrame = false;
+                _timeSinceJumpRequested += deltaTime;
+                if (_input.jump)
+                {
+                    // See if we actually are allowed to jump
+                    if (!_jumpConsumed && ((allowJumpingWhenSliding ? _motor.GroundingStatus.FoundAnyGround : _motor.GroundingStatus.IsStableOnGround) || _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
+                    {
+                        // Calculate jump direction before ungrounding
+                        Vector3 jumpDirection = _motor.CharacterUp;
+                        if (_motor.GroundingStatus.FoundAnyGround && !_motor.GroundingStatus.IsStableOnGround)
+                        {
+                            jumpDirection = _motor.GroundingStatus.GroundNormal;
+                        }
 
-	public void BeforeCharacterUpdate(float deltaTime)
-	{
-	}
+                        // Makes the character skip ground probing/snapping on its next update.
+                        // If this line weren't here, the character would remain snapped to the ground when trying to jump. Try commenting this line out and see.
+                        _motor.ForceUnground();
 
-	public void PostGroundingUpdate(float deltaTime)
-	{
-	}
+                        // the square root of H * -2 * G = how much velocity needed to reach desired height
+                        float jumpSpeed = Mathf.Sqrt(jumpHeight * -2f * gravity);
 
-	public void AfterCharacterUpdate(float deltaTime)
-	{
-		// Handle jump-related values
-		{
-			// Handle jumping pre-ground grace period
-			if (_input.jump && _timeSinceJumpRequested > JumpPreGroundingGraceTime)
-			{
-				_input.jump = false;
-			}
+                        // Add to the return velocity and reset jump state
+                        currentVelocity += (jumpDirection * jumpSpeed) - Vector3.Project(currentVelocity, _motor.CharacterUp);
+                        currentVelocity += moveInputVector.normalized * JumpBoostSpeed * currentMaxGroundSpeed;
+                        _input.jump = false;
+                        _jumpConsumed = true;
+                        _jumpedThisFrame = true;
+                    }
+                }
 
-			if (allowJumpingWhenSliding ? _motor.GroundingStatus.FoundAnyGround : _motor.GroundingStatus.IsStableOnGround)
-			{
-				// If we're on a ground surface, reset jumping values
-				if (!_jumpedThisFrame)
-				{
-					_jumpConsumed = false;
-				}
-				_timeSinceLastAbleToJump = 0f;
-			}
-			else
-			{
-				// Keep track of time since we were last able to jump (for grace period)
-				_timeSinceLastAbleToJump += deltaTime;
-			}
-		}
+                // // Take into account additive velocity
+                // if (_internalVelocityAdd.sqrMagnitude > 0f)
+                // {
+                //     currentVelocity += _internalVelocityAdd;
+                //     _internalVelocityAdd = Vector3.zero;
+                // }
 
-		// Handle uncrouching
-		// if (_isCrouching && !_shouldBeCrouching)
-		// {
-		// 	// Do an overlap test with the character's standing height to see if there are any obstructions
-		// 	_motor.SetCapsuleDimensions(0.5f, 2f, 1f);
-		// 	if (_motor.CharacterOverlap(
-		// 		_motor.TransientPosition,
-		// 		_motor.TransientRotation,
-		// 		_probedColliders,
-		// 		_motor.CollidableLayers,
-		// 		QueryTriggerInteraction.Ignore) > 0)
-		// 	{
-		// 		// If obstructions, just stick to crouching dimensions
-		// 		_motor.SetCapsuleDimensions(0.5f, CrouchedCapsuleHeight, CrouchedCapsuleHeight * 0.5f);
-		// 	}
-		// 	else
-		// 	{
-		// 		// If no obstructions, uncrouch
-		// 		MeshRoot.localScale = new Vector3(1f, 1f, 1f);
-		// 		_isCrouching = false;
-		// 	}
-		// }
-	}
+                break;
+        }
+    }
 
-	public bool IsColliderValidForCollisions(Collider coll)
-	{
-		return true;
-	}
+    public void BeforeCharacterUpdate(float deltaTime)
+    {
+    }
 
-	public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
-	{
-	}
+    public void PostGroundingUpdate(float deltaTime)
+    {
+    }
 
-	public void OnMovementHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
-	{
-	}
+    public void AfterCharacterUpdate(float deltaTime)
+    {
+        switch (_playerState)
+        {
+            case PlayerState.Normal:
+                // Handle jump-related values
+                {
+                    // Handle jumping pre-ground grace period
+                    if (_input.jump && _timeSinceJumpRequested > JumpPreGroundingGraceTime)
+                    {
+                        _input.jump = false;
+                    }
 
-	public void ProcessHitStabilityReport(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, Vector3 atCharacterPosition, Quaternion atCharacterRotation, ref HitStabilityReport hitStabilityReport)
-	{
-	}
+                    if (allowJumpingWhenSliding ? _motor.GroundingStatus.FoundAnyGround : _motor.GroundingStatus.IsStableOnGround)
+                    {
+                        // If we're on a ground surface, reset jumping values
+                        if (!_jumpedThisFrame)
+                        {
+                            _jumpConsumed = false;
+                        }
+                        _timeSinceLastAbleToJump = 0f;
+                    }
+                    else
+                    {
+                        // Keep track of time since we were last able to jump (for grace period)
+                        _timeSinceLastAbleToJump += deltaTime;
+                    }
+                }
 
-	public void OnDiscreteCollisionDetected(Collider hitCollider)
-	{
-	}
+                // Handle uncrouching
+                // if (_isCrouching && !_shouldBeCrouching)
+                // {
+                //     // Do an overlap test with the character's standing height to see if there are any obstructions
+                //     _motor.SetCapsuleDimensions(0.5f, 2f, 1f);
+                //     if (_motor.CharacterOverlap(
+                //         _motor.TransientPosition,
+                //         _motor.TransientRotation,
+                //         _probedColliders,
+                //         _motor.CollidableLayers,
+                //         QueryTriggerInteraction.Ignore) > 0)
+                //     {
+                //         // If obstructions, just stick to crouching dimensions
+                //         _motor.SetCapsuleDimensions(0.5f, CrouchedCapsuleHeight, CrouchedCapsuleHeight * 0.5f);
+                //     }
+                //     else
+                //     {
+                //         // If no obstructions, uncrouch
+                //         MeshRoot.localScale = new Vector3(1f, 1f, 1f);
+                //         _isCrouching = false;
+                //     }
+                // }
+
+                break;
+        }
+    }
+
+    public bool IsColliderValidForCollisions(Collider coll)
+    {
+        return true;
+    }
+
+    public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
+    {
+    }
+
+    public void OnMovementHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, ref HitStabilityReport hitStabilityReport)
+    {
+    }
+
+    public void ProcessHitStabilityReport(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint, Vector3 atCharacterPosition, Quaternion atCharacterRotation, ref HitStabilityReport hitStabilityReport)
+    {
+    }
+
+    public void OnDiscreteCollisionDetected(Collider hitCollider)
+    {
+    }
 }
