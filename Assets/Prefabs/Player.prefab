@@ -202,10 +202,11 @@ MonoBehaviour:
   maxAirMoveSpeed: 4
   groundAcceleration: 10
   airAcceleration: 10
+  drag: 1
   JumpPostGroundingGraceTime: 0
   JumpPreGroundingGraceTime: 0
-  JumpBoostSpeed: 0.25
-  jumpHeight: 1.2
+  JumpBoostSpeed: 1
+  jumpForce: 9
   gravity: -15
   useGravity: 1
   deadZone: -15

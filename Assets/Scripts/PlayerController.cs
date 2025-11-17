@@ -30,16 +30,19 @@ public class PlayerController : MonoBehaviour, ICharacterController
     public float groundAcceleration = 10f;
     [Tooltip("Acceleration and deceleration when in the air")]
     public float airAcceleration = 10f;
+    [Tooltip("Drag experienced by the player")]
+    public float drag = 1f;
+
     [Tooltip("Coyote time (time after leaving the ground during which you can still jump)")]
     public float JumpPostGroundingGraceTime = 0f;
     [Tooltip("Reverse Coyote time (time before landing on the ground during which you can queue a jump)")]
     public float JumpPreGroundingGraceTime = 0f;
     [Tooltip("The amount (relative to the current max movement speed) to boost the character in the direction of movement when they jump")]
-    public float JumpBoostSpeed = 0.25f;
+    public float JumpBoostSpeed = 1f;
 
     [Space(10)]
-    [Tooltip("The height the player can jump")]
-    public float jumpHeight = 1.2f;
+    [Tooltip("The force with which the player jumps")]
+    public float jumpForce = 9f;
     [Tooltip("The character uses its own gravity value. The engine default is -9.81f")]
     public float gravity = -15f;
     [Tooltip("If the character uses gravity")]
@@ -289,7 +292,7 @@ public class PlayerController : MonoBehaviour, ICharacterController
                     if (useGravity) currentVelocity += _motor.CharacterUp * gravity * deltaTime;
 
                     // Drag
-                    // currentVelocity *= 1f / (1f + (Drag * deltaTime));
+                    currentVelocity *= 1f / (1f + (drag * deltaTime));
                 }
 
                 // Handle jumping
@@ -311,11 +314,8 @@ public class PlayerController : MonoBehaviour, ICharacterController
                         // If this line weren't here, the character would remain snapped to the ground when trying to jump. Try commenting this line out and see.
                         _motor.ForceUnground();
 
-                        // the square root of H * -2 * G = how much velocity needed to reach desired height
-                        float jumpSpeed = Mathf.Sqrt(jumpHeight * -2f * gravity);
-
                         // Add to the return velocity and reset jump state
-                        currentVelocity += (jumpDirection * jumpSpeed) - Vector3.Project(currentVelocity, _motor.CharacterUp);
+                        currentVelocity += (jumpDirection * jumpForce) - Vector3.Project(currentVelocity, _motor.CharacterUp);
                         currentVelocity += moveInputVector.normalized * JumpBoostSpeed * currentMaxGroundSpeed;
                         _input.jump = false;
                         _jumpConsumed = true;
