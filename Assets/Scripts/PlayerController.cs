@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.Splines;
@@ -7,6 +8,8 @@ using KinematicCharacterController;
 
 // lots of the initial code adapted from ExampleCharacterController in:
 // https://assetstore.unity.com/packages/tools/physics/kinematic-character-controller-99131
+
+public delegate bool CalcForceField(Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime);
 
 [RequireComponent(typeof(KinematicCharacterMotor))]
 [RequireComponent(typeof(PlayerInput))]
@@ -91,6 +94,8 @@ public class PlayerController : MonoBehaviour, ICharacterController
     private float _pathSpeed;
     private float _distanceAlongPath;
 
+    private readonly HashSet<CalcForceField> _forceFields = new();
+
     // components
     private KinematicCharacterMotor _motor;
     private PlayerInput _playerInput;
@@ -116,6 +121,16 @@ public class PlayerController : MonoBehaviour, ICharacterController
         _timeSinceLastAbleToJump = 0f;
 
         _playerState = PlayerState.Normal;
+    }
+
+    public void EnterForceFieldRange(CalcForceField forceField)
+    {
+        _forceFields.Add(forceField);
+    }
+
+    public void ExitForceFieldRange(CalcForceField forceField)
+    {
+        _forceFields.Remove(forceField);
     }
 
     // INTERNAL
@@ -224,6 +239,23 @@ public class PlayerController : MonoBehaviour, ICharacterController
         switch (_playerState)
         {
             case PlayerState.Normal:
+                bool anyForceFieldActive = false;
+                Vector3 totalForce = Vector3.zero;
+                foreach (CalcForceField calcForceField in _forceFields)
+                {
+                    bool forceFieldActive = calcForceField(_motor.InitialSimulationPosition, currentVelocity, out Vector3 force, deltaTime);
+                    if (forceFieldActive)
+                    {
+                        anyForceFieldActive = true;
+                        totalForce += force;
+                    }
+                }
+
+                // assume a mass of 1 (ie. force == acceleration)
+                currentVelocity += totalForce * deltaTime;
+
+                if (_motor.GroundingStatus.IsStableOnGround && Vector3.Dot(totalForce, _motor.GroundingStatus.GroundNormal) > 0.1f) _motor.ForceUnground();
+
                 Vector3 moveInputVector = transform.TransformVector(new Vector3(_input.move.x, 0, _input.move.y));
                 if (!_input.analogMovement) moveInputVector.Normalize();
 
@@ -289,7 +321,8 @@ public class PlayerController : MonoBehaviour, ICharacterController
                     }
 
                     // Gravity
-                    if (useGravity) currentVelocity += _motor.CharacterUp * gravity * deltaTime;
+                    // only use gravity if there are no active force fields
+                    if (useGravity && !anyForceFieldActive) currentVelocity += _motor.CharacterUp * gravity * deltaTime;
 
                     // Drag
                     currentVelocity *= 1f / (1f + (drag * deltaTime));
