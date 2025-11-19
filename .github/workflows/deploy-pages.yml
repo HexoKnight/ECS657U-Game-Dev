@@ -64,7 +64,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           path: builds
-          name: Build-${{ github.run_id }}-${{ matrix.info.rev }}
+          name: Build-${{ github.run_id }}-${{ matrix.info.ref }}
           retention-days: 1
 
   upload-collected-builds:
