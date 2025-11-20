@@ -175,6 +175,7 @@ public class PlayerController : MonoBehaviour, ICharacterController
 
     private void LateUpdate()
     {
+        HandleOtherInputs();
         CameraRotation();
     }
 
@@ -183,6 +184,20 @@ public class PlayerController : MonoBehaviour, ICharacterController
         if (transform.position.y < deadZone)
         {
             SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+    }
+
+    private void HandleOtherInputs()
+    {
+        if (_input.increaseLookSpeed)
+        {
+            _input.increaseLookSpeed = false;
+            rotationSpeed += 0.1f;
+        }
+        if (_input.decreaseLookSpeed)
+        {
+            _input.decreaseLookSpeed = false;
+            rotationSpeed -= 0.1f;
         }
     }
 

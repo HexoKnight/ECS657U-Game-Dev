@@ -49,6 +49,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "IncreaseLookSpeed",
+                    "type": "Button",
+                    "id": "b1451156-f478-41ca-a87a-08ee5bfaa63b",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "DecreaseLookSpeed",
+                    "type": "Button",
+                    "id": "bce0ce6d-e818-4a5b-88de-d77ac71af806",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -236,6 +254,28 @@
                     "processors": "",
                     "groups": "KeyboardMouse",
                     "action": "Magnetise",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "a7f7f897-73e2-421a-9219-db8a9c52ada3",
+                    "path": "<Keyboard>/rightBracket",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "KeyboardMouse",
+                    "action": "IncreaseLookSpeed",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9b0a97c3-3edf-4826-9c81-ee7c530072d3",
+                    "path": "<Keyboard>/leftBracket",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "KeyboardMouse",
+                    "action": "DecreaseLookSpeed",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

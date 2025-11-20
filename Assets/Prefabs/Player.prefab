@@ -211,7 +211,7 @@ MonoBehaviour:
   useGravity: 1
   deadZone: -15
   allowJumpingWhenSliding: 1
-  rotationSpeed: 1
+  rotationSpeed: 2
   cinemachineCameraTarget: {fileID: 122406705304090264}
   topClamp: 90
   bottomClamp: -90
@@ -234,6 +234,8 @@ MonoBehaviour:
   jump: 0
   sprint: 0
   magnetise: 0
+  increaseLookSpeed: 0
+  decreaseLookSpeed: 0
   analogMovement: 0
   cursorLocked: 1
   cursorInputForLook: 1

@@ -10,6 +10,10 @@ public class PlayerInputs : MonoBehaviour
 	public bool sprint;
 	public bool magnetise;
 
+	[Header("Other Inputs")]
+	public bool increaseLookSpeed;
+	public bool decreaseLookSpeed;
+
 	[Header("Movement Settings")]
 	public bool analogMovement;
 
@@ -43,6 +47,16 @@ public class PlayerInputs : MonoBehaviour
 	public void OnMagnetise(InputValue value)
 	{
 		magnetise = value.isPressed;
+	}
+
+	public void OnIncreaseLookSpeed(InputValue value)
+	{
+		increaseLookSpeed = value.isPressed;
+	}
+
+	public void OnDecreaseLookSpeed(InputValue value)
+	{
+		decreaseLookSpeed = value.isPressed;
 	}
 
 	private void OnApplicationFocus(bool hasFocus)
