@@ -57,8 +57,6 @@ public class PlayerController : MonoBehaviour, ICharacterController
     public bool allowJumpingWhenSliding = true;
 
     [Header("Cinemachine")]
-    [Tooltip("Rotation speed of the camera")]
-    public float rotationSpeed = 1f;
     [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
     public Transform cinemachineCameraTarget;
     [Tooltip("How far in degrees can you move the camera up")]
@@ -194,8 +192,8 @@ public class PlayerController : MonoBehaviour, ICharacterController
                 //Don't multiply mouse input by Time.deltaTime
                 float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
 
-                _cinemachineTargetPitch += _input.look.y * rotationSpeed * deltaTimeMultiplier;
-                float yawVelocity = _input.look.x * rotationSpeed * deltaTimeMultiplier;
+                _cinemachineTargetPitch += _input.look.y * Options.mouseSensitivity * deltaTimeMultiplier;
+                float yawVelocity = _input.look.x * Options.mouseSensitivity * deltaTimeMultiplier;
 
                 // clamp our pitch rotation
                 _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);

@@ -211,7 +211,6 @@ MonoBehaviour:
   useGravity: 1
   deadZone: -15
   allowJumpingWhenSliding: 1
-  rotationSpeed: 1
   cinemachineCameraTarget: {fileID: 122406705304090264}
   topClamp: 90
   bottomClamp: -90
