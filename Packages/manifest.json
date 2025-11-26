@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.antigravity.ide": "https://github.com/prithvi-bharadwaj/Antigravity-IDE.git",
     "com.eflatun.scenereference": "https://github.com/starikcetin/Eflatun.SceneReference.git#4.1.1",
     "com.unity.burst": "1.8.9",
     "com.unity.cinemachine": "3.1.4",
