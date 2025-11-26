@@ -4,12 +4,6 @@ using Eflatun.SceneReference;
 
 public class StartMenu : MonoBehaviour
 {
-    [Tooltip("Transform to rotate for camera pivoting")]
-    public Transform cameraPivot;
-
-    [Tooltip("The speed with which to rotate the camera pivot")]
-    public float pivotSpeed = 10f;
-
     [Tooltip("The scene to load into on 'Start Game'")]
     public SceneReference loadScene;
 
@@ -35,8 +29,6 @@ public class StartMenu : MonoBehaviour
             Debug.Log("scene loading finished in the background!");
             _wasSceneLoaded = true;
         }
-
-        cameraPivot.RotateAround(cameraPivot.transform.position, cameraPivot.transform.up, pivotSpeed * Time.deltaTime);
     }
 
     public void StartGame()
