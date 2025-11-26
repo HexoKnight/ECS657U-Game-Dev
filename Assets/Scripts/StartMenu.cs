@@ -7,6 +7,9 @@ public class StartMenu : MonoBehaviour
     [Tooltip("The scene to load into on 'Start Game'")]
     public SceneReference loadScene;
 
+    [Tooltip("GameObject to make active when 'Options' is pressed")]
+    public GameObject optionsObject;
+
     private AsyncOperation _sceneLoadOperation;
 
     // was the scene loaded the last time we checked
@@ -43,6 +46,8 @@ public class StartMenu : MonoBehaviour
 
     public void OpenOptions()
     {
+        optionsObject.SetActive(true);
+        gameObject.SetActive(false);
     }
 
     public void Quit()
