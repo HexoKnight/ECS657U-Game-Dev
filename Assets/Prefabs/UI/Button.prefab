@@ -86,7 +86,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 702930758173964457}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Script: {fileID: 11500000, guid: dfa3712ec79b5ae4abc021666835570a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   m_Navigation:
@@ -121,6 +121,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+  immediate: 0
 --- !u!1 &2350903329754446044
 GameObject:
   m_ObjectHideFlags: 0
