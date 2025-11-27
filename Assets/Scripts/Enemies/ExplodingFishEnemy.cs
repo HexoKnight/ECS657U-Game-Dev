@@ -88,13 +88,11 @@ public class ExplodingFishEnemy : EnemyBase
         {
             if (hit.CompareTag("Player"))
             {
-                // Apply damage and massive knockback
-                // For now, just log it until PlayerController is updated
-                Debug.Log("BOOM! Player hit by explosion.");
-                
-                // If we had the interface on player:
-                // var damageable = hit.GetComponent<IDamageable>();
-                // damageable?.TakeDamage(contactDamage * 5f, transform.position, (hit.transform.position - transform.position).normalized);
+                var damageable = hit.GetComponent<IDamageable>();
+                if (damageable != null)
+                {
+                     damageable.TakeDamage(contactDamage * 5f, transform.position, (hit.transform.position - transform.position).normalized);
+                }
             }
         }
 

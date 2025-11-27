@@ -17,12 +17,17 @@ This framework adds Enemies, Hazards, and Checkpoints to the GUP project.
 3. Add the `CrabEnemy` script.
 4. Create two empty GameObjects in the scene to act as **Point A** and **Point B**.
 5. Assign them to the `Point A` and `Point B` fields in the inspector.
+6. **Chase Settings**:
+   - `Detection Radius`: Distance to spot the player.
+   - `Chase Radius`: Distance to give up chase.
+   - `Chase Speed`: Speed when chasing.
 
 ### **B. Spiky Fish (Swimming)**
 1. Create a **Sphere** (visual).
 2. Add `SpikyFishEnemy` script.
 3. Create a list of empty GameObjects for **Waypoints**.
 4. Drag them into the `Waypoints` list in the inspector.
+5. **Wait Time**: Time to pause at each waypoint (default 1s).
 
 ### **C. Exploding Fish (Kamikaze)**
 1. Create a **Sphere** (Red color recommended).
@@ -58,7 +63,9 @@ EnemyBase.GlobalDamageMultiplier = 1.5f; // Make all enemies deal 50% more damag
 Every enemy has public fields:
 - `moveSpeed`
 - `contactDamage`
-- `detectionRadius` (Exploding Fish)
+- `contactDamage`
+- `detectionRadius` (Crab, Exploding Fish)
+- `chaseSpeed` (Crab)
 
 ## 4. Testing
 
