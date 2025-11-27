@@ -83,6 +83,18 @@ public class PlayerInputs : MonoBehaviour
 		SetCursorState(!paused);
 	}
 
+	private void Update()
+	{
+		// Escape key is intercepted by the browser to free the cursor:
+		// https://docs.unity3d.com/2023.1/Documentation/Manual/webgl-input.html
+		// so we detect this and act accordingly
+		if (!CursorLocked && !paused)
+		{
+			// cursor unlocked but not paused so we must correct that
+			SetPaused(true);
+		}
+	}
+
 	private void SetCursorState(bool newState)
 	{
 		Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
