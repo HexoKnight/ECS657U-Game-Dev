@@ -31,6 +31,7 @@ jobs:
       matrix:
         info: ${{ fromJSON(needs.gather-info.outputs.infos) }}
       max-parallel: 1
+    continue-on-error: true
     steps:
       - name: Checkout .github/actions
         uses: actions/checkout@v4
@@ -44,6 +45,11 @@ jobs:
           path: builds/${{ matrix.info.ref }}
           key: build-${{ matrix.info.rev }}
 
+      - if: steps.restore-build.outputs.cache-hit == 'true'
+        name: Check for cached build failure
+        # fail when a cached build dir is empty
+        run: test "$(ls -A builds/${{ matrix.info.ref }})" != ""
+
       - if: steps.restore-build.outputs.cache-hit != 'true'
         id: build
         uses: ./actions-repo/.github/actions/build-rev
@@ -54,12 +60,15 @@ jobs:
           UNITY_LICENSE:  ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL:    ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
-        continue-on-error: true
 
-      - if: steps.build.outcome == 'failure'
-        run: mkdir -p builds/${{ matrix.info.ref }}
+      - if: failure() && steps.build.outcome == 'failure'
+        name: Empty build dir after build failure
+        run: |
+          rm -rf builds/${{ matrix.info.ref }}
+          mkdir -p builds/${{ matrix.info.ref }}
 
-      - if: steps.restore-build.outputs.cache-hit != 'true'
+        # also cache failed builds
+      - if: (success() || failure()) && steps.restore-build.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: builds/${{ matrix.info.ref }}
