@@ -18,6 +18,8 @@ public class PlayerInputs : MonoBehaviour
 
 	private bool CursorLocked => Cursor.lockState == CursorLockMode.Locked;
 
+	private bool paused = false;
+
 	public void OnMove(InputValue value)
 	{
 		move = value.Get<Vector2>();
@@ -63,14 +65,22 @@ public class PlayerInputs : MonoBehaviour
 		if (!hasFocus) SetPaused(true);
 	}
 
-	public void SetPaused(bool paused)
+	public void SetPaused(bool newPaused)
 	{
+		bool wasPaused = paused;
+		paused = newPaused;
+
 		SetCursorState(!paused);
 
 		Time.timeScale = paused ? 0 : 1;
 
 		// TODO: improve
-		FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).gameObject.SetActive(paused);
+		if (wasPaused != paused) FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).gameObject.SetActive(paused);
+	}
+
+	private void Start()
+	{
+		SetCursorState(!paused);
 	}
 
 	private void SetCursorState(bool newState)
