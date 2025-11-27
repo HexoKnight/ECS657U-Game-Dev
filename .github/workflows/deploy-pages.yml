@@ -45,7 +45,7 @@ jobs:
           key: build-${{ matrix.info.rev }}
 
       - if: steps.restore-build.outputs.cache-hit != 'true'
-        name: Build
+        id: build
         uses: ./actions-repo/.github/actions/build-rev
         with:
           rev: ${{ matrix.info.rev }}
@@ -54,6 +54,10 @@ jobs:
           UNITY_LICENSE:  ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL:    ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        continue-on-error: true
+
+      - if: steps.build.outcome == 'failure'
+        run: mkdir -p builds/${{ matrix.info.ref }}
 
       - if: steps.restore-build.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
