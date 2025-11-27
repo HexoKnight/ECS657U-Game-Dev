@@ -14,8 +14,9 @@ public class PlayerInputs : MonoBehaviour
 	public bool analogMovement;
 
 	[Header("Mouse Cursor Settings")]
-	public bool cursorLocked = true;
 	public bool cursorInputForLook = true;
+
+	private bool CursorLocked => Cursor.lockState == CursorLockMode.Locked;
 
 	public void OnMove(InputValue value)
 	{
@@ -24,9 +25,13 @@ public class PlayerInputs : MonoBehaviour
 
 	public void OnLook(InputValue value)
 	{
-		if (cursorInputForLook)
+		if (CursorLocked)
 		{
 			look = value.Get<Vector2>();
+		}
+		else
+		{
+			look = Vector2.zero;
 		}
 	}
 
@@ -45,9 +50,31 @@ public class PlayerInputs : MonoBehaviour
 		magnetise = value.isPressed;
 	}
 
+	public void OnPause(InputValue value)
+	{
+		// only allow pausing with the keybind (ie. need to use Resume button to unpause)
+		// this ensures we have focus and thus can always grab the cursor
+		if (value.isPressed) SetPaused(true);
+	}
+
 	private void OnApplicationFocus(bool hasFocus)
 	{
-		// enforce cursor lockState on focus change (regardless of whether we are gaining or losing it)
-		Cursor.lockState = cursorLocked ? CursorLockMode.Locked : CursorLockMode.None;
+		// pause on focus loss
+		if (!hasFocus) SetPaused(true);
+	}
+
+	public void SetPaused(bool paused)
+	{
+		SetCursorState(!paused);
+
+		Time.timeScale = paused ? 0 : 1;
+
+		// TODO: improve
+		FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).gameObject.SetActive(paused);
+	}
+
+	private void SetCursorState(bool newState)
+	{
+		Cursor.lockState = newState ? CursorLockMode.Locked : CursorLockMode.None;
 	}
 }
