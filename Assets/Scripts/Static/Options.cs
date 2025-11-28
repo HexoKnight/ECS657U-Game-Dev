@@ -1,3 +1,4 @@
+using UnityEngine;
 using UnityEngine.Events;
 
 public static class Options
@@ -21,4 +22,11 @@ public static class Options
     }
 
     public static readonly WatchableValue<float> mouseSensitivity = 1.0f;
+    public static readonly WatchableValue<int> graphicsQuality = QualitySettings.GetQualityLevel();
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+    private static void Startup()
+    {
+        graphicsQuality.AddListener(QualitySettings.SetQualityLevel);
+    }
 }
