@@ -1,12 +1,13 @@
 using UnityEngine;
 using System;
+using System.Linq;
 
 public class TreasureManager : MonoBehaviour
 {
     public static TreasureManager Instance { get; private set; }
 
     [Header("Goal")]
-    public int totalNeeded = 10; // required to finish/trigger event
+    public int totalNeeded = 0; // required to finish/trigger event
     public int totalCollected { get; private set; } = 0;
 
     public event Action<int, int> OnTreasureChanged; // (collected, needed)
@@ -20,6 +21,14 @@ public class TreasureManager : MonoBehaviour
     {
         if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
         else { Destroy(gameObject); return; }
+
+        if (totalNeeded == 0)
+        {
+            totalNeeded =
+                FindObjectsByType<TreasureCollectible>(FindObjectsSortMode.None)
+                .Select(c => c.value)
+                .Sum();
+        }
 
         if (saveProgress) Load();
     }

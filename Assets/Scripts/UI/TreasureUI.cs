@@ -3,7 +3,7 @@ using UnityEngine.UI;
 
 public class TreasureUI : MonoBehaviour
 {
-    public Text treasureText;           // legacy UI Text OR TextMeshPro - adapt if using TMP
+    public TMPro.TMP_Text treasureText;
     public Slider progressBar;          // optional progress bar (0..1)
     public GameObject allCollectedPanel; // optional celebration UI
 

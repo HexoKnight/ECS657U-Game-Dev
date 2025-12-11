@@ -32,7 +32,7 @@ public class TreasureCollectible : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Player")) return;
+        if (other.GetComponent<PlayerController>() == null) return;
 
         // Add to manager
         TreasureManager.Instance?.AddTreasure(value);
