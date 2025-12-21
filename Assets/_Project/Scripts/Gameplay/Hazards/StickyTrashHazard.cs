@@ -1,18 +1,31 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+using GUP.Core.Config;
+
 /// <summary>
 /// Hazard that slows the player and optionally impairs vision when touching sticky trash.
 /// Uses a proper modifier system instead of directly changing player values.
 /// </summary>
 public class StickyTrashHazard : MonoBehaviour
 {
+    #region Configuration
+    
+    [Header("Configuration")]
+    [Tooltip("Optional: Hazard config ScriptableObject. If not assigned, uses local serialized values.")]
+    [SerializeField] private HazardConfig hazardConfig;
+    
+    #endregion
+
     #region Settings
     
     [Header("Slow Effect")]
     [Tooltip("How much to slow the player (0-1, where 1 is stopped)")]
     [Range(0f, 0.9f)]
     [SerializeField] private float slowFactor = 0.5f;
+    
+    // Property uses config if assigned, otherwise fallback
+    private float SlowFactor => hazardConfig != null ? hazardConfig.slowFactor : slowFactor;
     
     [Tooltip("How quickly the slow effect applies")]
     [SerializeField] private float slowTransitionSpeed = 3f;
@@ -76,7 +89,7 @@ public class StickyTrashHazard : MonoBehaviour
             }
             
             // Lerp towards target modifier
-            float targetModifier = 1f - slowFactor;
+            float targetModifier = 1f - SlowFactor;
             currentSpeedModifiers[player] = Mathf.Lerp(
                 currentSpeedModifiers[player],
                 targetModifier,

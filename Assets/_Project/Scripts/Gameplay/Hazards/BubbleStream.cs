@@ -1,5 +1,7 @@
 using UnityEngine;
 
+using GUP.Core.Config;
+
 /// <summary>
 /// Bubble stream that pushes the player upward when inside.
 /// Creates a vertical current effect for underwater platforming.
@@ -7,11 +9,22 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class BubbleStream : MonoBehaviour
 {
+    #region Configuration
+    
+    [Header("Configuration")]
+    [Tooltip("Optional: Hazard config ScriptableObject. If not assigned, uses local serialized values.")]
+    [SerializeField] private HazardConfig hazardConfig;
+    
+    #endregion
+
     #region Settings
     
     [Header("Push Force")]
     [Tooltip("Upward force applied to the player")]
     [SerializeField] private float upwardForce = 15f;
+    
+    // Property uses config if assigned, otherwise fallback
+    private float UpwardForce => hazardConfig != null ? hazardConfig.pushForce : upwardForce;
     
     [Tooltip("How quickly the force builds up")]
     [SerializeField] private float forceRampSpeed = 3f;
@@ -91,7 +104,7 @@ public class BubbleStream : MonoBehaviour
             playerForceBuildup[player] = currentBuildup;
             
             // Calculate and apply force
-            float force = upwardForce * currentBuildup;
+            float force = UpwardForce * currentBuildup;
             Vector3 pushDirection = transform.up; // Local up direction
             
             // Use AddVelocity to push player upward

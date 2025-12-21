@@ -25,5 +25,26 @@ namespace GUP.Core.Config
         
         [Tooltip("If true, deals damage continuously while in contact")]
         public bool continuousDamage = false;
+        
+        [Header("Push Effect (BubbleStream)")]
+        [Tooltip("Upward force applied to player")]
+        public float pushForce = 15f;
+        
+        [Tooltip("How quickly the force builds up")]
+        public float forceRampSpeed = 3f;
+        
+        [Tooltip("Maximum additional velocity boost")]
+        public float maxVelocityBoost = 10f;
+        
+        [Header("Slow Effect (StickyTrash)")]
+        [Tooltip("How much to slow the player (0-1, where 1 is stopped)")]
+        [Range(0f, 0.9f)]
+        public float slowFactor = 0.5f;
+        
+        [Tooltip("How quickly the slow effect applies")]
+        public float slowTransitionSpeed = 3f;
+        
+        [Tooltip("Enable vision impairment effect")]
+        public bool impairVision = true;
     }
 }
