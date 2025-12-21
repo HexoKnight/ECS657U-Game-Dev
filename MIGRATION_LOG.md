@@ -127,8 +127,35 @@ The following empty folders remain from the old structure (Unity should clean th
 
 ---
 
+## Phase 2: Folder Structure Cleanup
+
+### Commit: Fix duplicated folder nesting
+
+Fixed nested folder structures created during Phase 1 moves:
+
+| Problem | Solution |
+|---------|----------|
+| `_Project/Scenes/Scenes/` | Moved 4 scenes to `_Project/Scenes/`, removed nested folder |
+| `_Project/Prefabs/Prefabs/` | Moved all prefabs (+ 4 subdirs) to `_Project/Prefabs/`, removed nested folder |
+
+### Files Moved
+
+**Scenes (8 files):**
+- EnemiesDemo.unity (+.meta)
+- Level1.unity (+.meta)
+- MainScene.unity (+.meta)
+- StartMenu.unity (+.meta)
+
+**Prefabs (22 files + 4 dirs):**
+- Collectable.prefab, GenericPlatform.prefab, MagneticPlatform.prefab
+- MainCamera.prefab, NormalPlatform.prefab, OldWaterCurrent.prefab
+- Player.prefab, VirtualCamera.prefab, WaterCurrent.prefab
+- Enemies/, Hazards/, Projectiles/, UI/ subdirectories
+
+---
+
 ## Next Steps
 
 1. **Verify in Unity Editor**: Open project, check for compile errors
-2. **Test each scene**: StartMenu, Level1, MainScene, EnemiesDemo
-3. **Phase 2** (optional): Add namespaces, implement SO-based event channels
+2. **Test each scene**: MainScene, EnemiesDemo
+3. **Create PR**: `refactor/phase2-production-quality` → `refactor/architecture-cleanup`
