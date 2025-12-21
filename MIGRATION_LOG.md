@@ -238,8 +238,63 @@ In Unity, assign event channels on Player and Enemy prefabs:
 
 ---
 
+## Phase 3C: Config ScriptableObject Migration
+
+### Branch: `refactor/phase3-configs`
+### Base: `refactor/phase3-migrations`
+
+### Milestone 1: PlayerController → PlayerMovementConfig
+
+| Commit | Description |
+|--------|-------------|
+| `edcde26` | Add PlayerMovementConfig consumption (fallback preserved) |
+| `c3e3340` | Add PlayerMovementConfig asset |
+
+**Changes:**
+- Added optional `PlayerMovementConfig` field to `PlayerController`
+- Config is optional: existing serialized fields work as fallback
+- Created `Data/Config/PlayerMovementConfig.asset` with default values
+
+### Milestone 2: EnemyBase → EnemyConfig
+
+| Commit | Description |
+|--------|-------------|
+| `e415573` | Add EnemyConfig consumption (fallback preserved) |
+| `83bd81a` | Add EnemyConfig assets for enemy archetypes |
+
+**Changes:**
+- Added optional `EnemyConfig` field to `EnemyBase`
+- Config is optional: existing serialized fields work as fallback
+
+**EnemyConfig Assets Created:**
+- `AnglerFishConfig.asset`
+- `CrabEnemyConfig.asset`
+- `ExplodingFishConfig.asset`
+- `JellyfishConfig.asset`
+- `SpikyFishConfig.asset`
+
+### Milestone 3: Hazards → HazardConfig
+
+**Status:** Skipped - existing hazard scripts (BubbleStream, StickyTrashHazard) don't use damage tunables.
+HazardConfig is designed for damage-dealing hazards. If damage hazards are added later, they can use HazardConfig.
+
+---
+
+## Wiring Required (Unity Editor)
+
+### Player Prefab
+1. Select Player prefab → PlayerController
+2. Assign `Data/Config/PlayerMovementConfig` to `Movement Config`
+
+### Enemy Prefabs
+1. Select each enemy prefab → Enemy script (extends EnemyBase)
+2. Assign corresponding config from `Data/Config/`
+
+---
+
 ## Next Steps
 
 1. **Verify in Unity Editor**: 0 compile errors
-2. **Wire prefabs**: Assign event channels in Player prefab
-3. **Play MainScene + EnemiesDemo**: Damage still works
+2. **Wire Player prefab**: Assign PlayerMovementConfig
+3. **Wire Enemy prefabs**: Assign EnemyConfig assets
+4. **Play MainScene + EnemiesDemo**: Behavior unchanged
