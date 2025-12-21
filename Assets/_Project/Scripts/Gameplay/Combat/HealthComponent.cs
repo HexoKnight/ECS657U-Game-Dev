@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 using GUP.Core;
+using GUP.Core.Events;
 
 namespace GUP.Gameplay
 {
@@ -40,6 +41,16 @@ namespace GUP.Gameplay
         
         [Tooltip("Invoked when entity is healed. Parameter: heal amount")]
         public UnityEvent<float> OnHealed;
+        
+        [Header("Event Channels (SO-based)")]
+        [Tooltip("Optional: Broadcasts damage events to listeners")]
+        [SerializeField] private DamageEventChannel damageEventChannel;
+        
+        [Tooltip("Optional: Broadcasts health changes (normalized 0-1)")]
+        [SerializeField] private FloatEventChannel healthChangedChannel;
+        
+        [Tooltip("Optional: Broadcasts when this entity dies")]
+        [SerializeField] private VoidEventChannel deathEventChannel;
         
         #endregion
 
@@ -171,7 +182,11 @@ namespace GUP.Gameplay
             OnHealthChanged?.Invoke(HealthNormalized);
             HealthChanged?.Invoke(HealthNormalized);
             
-            // Broadcast to GameEvents
+            // Broadcast via event channels (primary)
+            damageEventChannel?.Raise(gameObject, damage);
+            healthChangedChannel?.Raise(HealthNormalized);
+            
+            // Legacy: Broadcast to GameEvents (for non-migrated systems)
             GameEvents.RaiseEntityDamaged(gameObject, damage);
             
             // Start invulnerability
@@ -237,7 +252,10 @@ namespace GUP.Gameplay
             OnDeath?.Invoke();
             Died?.Invoke();
             
-            // Broadcast to GameEvents
+            // Broadcast via event channel (primary)
+            deathEventChannel?.Raise();
+            
+            // Legacy: Broadcast to GameEvents (for non-migrated systems)
             GameEvents.RaiseEntityDied(gameObject);
         }
         
