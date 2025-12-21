@@ -391,8 +391,51 @@ The HFSM infrastructure is now in place for future state-based expansion.
 
 ---
 
+## Phase 4B: Player HFSM Migration (Behavior Preserving)
+
+### Branch: `refactor/phase4b-player-hfsm-migration`
+### Base: `refactor/phase4-player-hfsm`
+
+### Architecture Analysis
+
+**Key Findings:**
+1. `MagnetWalker` is a **separate component** that handles magnetic attach/detach by modifying `PlayerController.targetUp`
+2. `PlayerController` uses a simple enum (`Normal`/`StaticSpline`) - no separate swim/walk states
+3. Currents are handled as **force fields** in a `HashSet<CalcForceField>` - they apply additive forces
+4. Movement is unified: ground and air movement both handled in `UpdateVelocity`
+
+### Commits
+
+| Commit | Description |
+|--------|-------------|
+| `2ae930e` | Player HFSM: rename SwimmingState to GroundWalkState |
+
+### State Hierarchy (Adapted)
+
+```
+Root
+└─ AliveState (composite)
+    └─ LocomotionState (composite)
+        ├─ GroundWalkState (leaf) - underwater walking
+        └─ MagneticTraversalState (leaf) - magnetic surface walking
+```
+
+### Design Integration
+
+**MagnetWalker Integration:**
+- MagnetWalker remains a separate component
+- It modifies `PlayerController.targetUp` for orientation
+- HFSM observes but doesn't control attach/detach
+
+**Currents as External Force Modifier:**
+- Currents are already implemented as force field callbacks
+- No state changes needed - applies to all locomotion states
+- Already follows the "external modifier" pattern
+
+---
+
 ## Next Steps
 
 1. **Verify in Unity Editor**: 0 compile errors
-2. **Play MainScene**: Movement works as before
-3. **Future expansion**: Migrate more logic into HFSM states as needed
+2. **Play MainScene**: Movement identical
+3. **HFSM expansion**: Wire states to PlayerController if deeper integration needed
