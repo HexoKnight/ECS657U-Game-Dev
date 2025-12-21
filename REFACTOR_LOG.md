@@ -13,52 +13,73 @@ This log tracks all changes during Phase 2 refactoring.
 
 ## Milestone 1: Coding Standards & Namespaces
 
-### Status: In Progress
+### Status: ✅ Complete
 
 ### Changes
-| Commit | Description | Verification |
-|--------|-------------|--------------|
-| `1eed1cf` | Add GUP.Core namespace to all Core scripts (8 files) | Pending |
-| `ba483a1` | Add 'using GUP.Core' to Gameplay/UI (10 files) | Pending |
+| Commit | Description |
+|--------|-------------|
+| `1eed1cf` | Add GUP.Core namespace to all Core scripts (8 files) |
+| `ba483a1` | Add 'using GUP.Core' to Gameplay/UI (10 files) |
+| `5323c45` | Fix missing 'using GUP.Core' in DeadState.cs |
 
 ### Files Modified
-- **Core (8 files)**: DamageType, EntityType, DamageData, IDamageable, GameEvents, Options, HealthComponent, DamageDealer
-- **Gameplay (9 files)**: PlayerController, EnemyBase, SpineProjectile, EnemyState, EnemyStateMachine, DifficultyManager, AnglerFish, ExplodingFish, Jellyfish
-- **UI (1 file)**: OptionsMenu
-
-### Rollback
-If namespace changes break prefab serialization:
-1. Check console for `MissingReferenceException`
-2. Use `git diff HEAD~1` to see changed files
-3. Add `[FormerlySerializedAs("OldClassName")]` if needed
-4. Revert with `git revert HEAD` if unrecoverable
+- **Core (8)**: DamageType, EntityType, DamageData, IDamageable, GameEvents, Options, HealthComponent, DamageDealer
+- **Gameplay (10)**: PlayerController, EnemyBase, SpineProjectile, EnemyState, EnemyStateMachine, DifficultyManager, AnglerFish, ExplodingFish, Jellyfish, DeadState
+- **UI (1)**: OptionsMenu
 
 ---
 
 ## Milestone 2: Event Channels
 
-### Status: Pending
+### Status: ✅ Complete
 
 ### Changes
-(To be filled as work progresses)
+| Commit | Description |
+|--------|-------------|
+| `55bf438` | Add ScriptableObject Event Channel framework |
+
+### Files Added
+- `Core/Events/GameEventSO.cs` - Base class
+- `Core/Events/VoidEventChannel.cs` - Parameterless events
+- `Core/Events/FloatEventChannel.cs` - Float parameter events
+- `Core/Events/Vector3EventChannel.cs` - Position events
+- `Core/Events/GameObjectEventChannel.cs` - Entity events
+- `Core/Events/DamageEventChannel.cs` - Damage events
+- `Core/Events/VoidEventListener.cs` - Inspector listener
+- `Core/Events/FloatEventListener.cs` - Float listener
 
 ---
 
 ## Milestone 3: HFSM Framework
 
-### Status: Pending
+### Status: ✅ Complete
 
 ### Changes
-(To be filled as work progresses)
+| Commit | Description |
+|--------|-------------|
+| `79929d4` | Add HFSM framework |
+
+### Files Added
+- `Core/StateMachine/IState.cs` - State interface
+- `Core/StateMachine/IStateMachine.cs` - Machine interface
+- `Core/StateMachine/StateBase.cs` - Generic base class
+- `Core/StateMachine/StateMachineBase.cs` - Generic implementation
 
 ---
 
 ## Milestone 4: Data-Driven Configuration
 
-### Status: Pending
+### Status: ✅ Complete
 
 ### Changes
-(To be filled as work progresses)
+| Commit | Description |
+|--------|-------------|
+| `7bec4b3` | Add configuration ScriptableObjects |
+
+### Files Added
+- `Core/Config/PlayerMovementConfig.cs` - Player tunables
+- `Core/Config/EnemyConfig.cs` - Enemy tunables
+- `Core/Config/HazardConfig.cs` - Hazard tunables
 
 ---
 
