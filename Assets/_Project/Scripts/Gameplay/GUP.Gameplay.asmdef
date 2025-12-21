@@ -7,7 +7,8 @@
         "ThirdParty.KCC",
         "Unity.InputSystem",
         "Unity.Splines",
-        "Unity.Cinemachine"
+        "Unity.Cinemachine",
+        "Unity.Mathematics"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
