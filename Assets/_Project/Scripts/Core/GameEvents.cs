@@ -48,8 +48,10 @@ public static class GameEvents
     {
         OnEntityDamaged?.Invoke(entity, damage);
         
-        // Use component-based detection (safer than tags)
-        if (entity.GetComponent<PlayerController>() != null)
+        // Use interface/layer-based detection to avoid circular dependency with Gameplay assembly
+        // Components should implement IDamageable with EntityType property
+        var damageable = entity.GetComponent<IDamageable>();
+        if (damageable != null && damageable.EntityType == EntityType.Player)
         {
             OnPlayerDamaged?.Invoke(damage);
         }
@@ -59,15 +61,18 @@ public static class GameEvents
     {
         OnEntityDied?.Invoke(entity);
         
-        // Use component-based detection (safer than tags)
-        // This avoids the "Tag not defined" error entirely
-        if (entity.GetComponent<PlayerController>() != null)
+        // Use interface/layer-based detection to avoid circular dependency
+        var damageable = entity.GetComponent<IDamageable>();
+        if (damageable != null)
         {
-            OnPlayerDied?.Invoke();
-        }
-        else if (entity.GetComponent<EnemyBase>() != null)
-        {
-            OnEnemyKilled?.Invoke(entity);
+            if (damageable.EntityType == EntityType.Player)
+            {
+                OnPlayerDied?.Invoke();
+            }
+            else if (damageable.EntityType == EntityType.Enemy)
+            {
+                OnEnemyKilled?.Invoke(entity);
+            }
         }
     }
     

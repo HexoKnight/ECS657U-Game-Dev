@@ -10,6 +10,10 @@ public class HealthComponent : MonoBehaviour, IDamageable
 {
     #region Inspector Fields
     
+    [Header("Entity Settings")]
+    [Tooltip("Type of entity for event routing")]
+    [SerializeField] private EntityType entityType = EntityType.Unknown;
+    
     [Header("Health Settings")]
     [Tooltip("Maximum health of this entity")]
     [SerializeField] private float maxHealth = 100f;
@@ -142,6 +146,9 @@ public class HealthComponent : MonoBehaviour, IDamageable
     #endregion
 
     #region IDamageable Implementation
+    
+    /// <summary>Entity type for cross-assembly identification.</summary>
+    public EntityType EntityType => entityType;
     
     public void TakeDamage(DamageData damage)
     {

@@ -7,6 +7,11 @@ using UnityEngine;
 public interface IDamageable
 {
     /// <summary>
+    /// The type of entity for event routing and cross-assembly identification.
+    /// </summary>
+    EntityType EntityType { get; }
+    
+    /// <summary>
     /// Apply damage using structured DamageData.
     /// Preferred method for new code.
     /// </summary>

@@ -315,6 +315,11 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
     #region IDamageable Implementation
     
+    /// <summary>
+    /// Entity type for cross-assembly identification.
+    /// </summary>
+    public EntityType EntityType => EntityType.Enemy;
+    
     public void TakeDamage(DamageData damage)
     {
         if (isDead || damage.Amount <= 0f || isInvulnerable) return;

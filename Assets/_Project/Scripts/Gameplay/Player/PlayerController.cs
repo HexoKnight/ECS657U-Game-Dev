@@ -165,6 +165,11 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
 
 // ------------- HEALTH / DAMAGE API -------------
 /// <summary>
+/// Entity type for cross-assembly identification.
+/// </summary>
+public EntityType EntityType => EntityType.Player;
+
+/// <summary>
 /// Implementation of IDamageable. Enemies/hazards should call this to damage the player.
 /// </summary>
 public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
