@@ -1,133 +1,86 @@
 using UnityEngine;
 
+/// <summary>
+/// Crab enemy with patrol, alert, chase, and melee attack behaviors.
+/// Uses state machine from EnemyBase.
+/// </summary>
 public class CrabEnemy : EnemyBase
 {
-    [Header("Patrol Settings")]
-    public Transform pointA;
-    public Transform pointB;
-    public float waitTime = 1f;
+    #region Crab-Specific Settings
+    
+    [Header("Crab Settings")]
+    [Tooltip("Primary patrol point A")]
+    [SerializeField] private Transform pointA;
+    
+    [Tooltip("Primary patrol point B")]
+    [SerializeField] private Transform pointB;
+    
+    [Tooltip("Snapping animation when attacking")]
+    [SerializeField] private bool useSnapAnimation = true;
+    
+    #endregion
 
-    [Header("Chase Settings")]
-    public float detectionRadius = 5f;
-    public float chaseRadius = 8f;
-    public float chaseSpeed = 3f;
+    #region Lifecycle
+    
+    protected override void Awake()
+    {
+        base.Awake();
+        
+        // If patrol points are set, add them to waypoints
+        if (patrolWaypoints == null)
+        {
+            patrolWaypoints = new System.Collections.Generic.List<Transform>();
+        }
+        
+        if (pointA != null && !patrolWaypoints.Contains(pointA))
+        {
+            patrolWaypoints.Insert(0, pointA);
+        }
+        if (pointB != null && !patrolWaypoints.Contains(pointB))
+        {
+            patrolWaypoints.Add(pointB);
+        }
+    }
 
-    private Vector3 targetPosition;
-    private float waitTimer;
-    private bool movingToB = true;
-    private Transform playerTransform;
-    private bool isChasing = false;
-
+    protected override void Start()
+    {
+        // Detach points so they don't move with the crab
+        if (pointA != null) pointA.SetParent(null);
+        if (pointB != null) pointB.SetParent(null);
+        
+        base.Start();
+    }
+    
     public override void OnSpawn()
     {
         base.OnSpawn();
-        if (pointA != null) targetPosition = pointA.position;
-        else targetPosition = transform.position;
-
-        // Find player
-        PlayerController pc = FindObjectOfType<PlayerController>();
-        if (pc != null) playerTransform = pc.transform;
+        
+        if (debugStates)
+        {
+            Debug.Log($"[CrabEnemy] {name} spawned with {patrolWaypoints.Count} patrol points");
+        }
     }
+    
+    #endregion
 
-    private void Update()
+    #region Attack Override
+    
+    public override void PerformAttack()
     {
-        if (playerTransform == null)
+        // Crab-specific attack: snap claws
+        if (useSnapAnimation && Animator != null)
         {
-            PlayerController pc = FindObjectOfType<PlayerController>();
-            if (pc != null) playerTransform = pc.transform;
+            Animator.SetTrigger("Snap");
         }
-
-        if (isChasing)
+        
+        // Call base attack logic
+        base.PerformAttack();
+        
+        if (debugStates)
         {
-            ChaseBehavior();
-        }
-        else
-        {
-            PatrolBehavior();
-            CheckForPlayer();
+            Debug.Log($"[CrabEnemy] {name} snapped claws!");
         }
     }
-
-    private void CheckForPlayer()
-    {
-        if (playerTransform == null) return;
-        float distance = Vector3.Distance(transform.position, playerTransform.position);
-        if (distance < detectionRadius)
-        {
-            isChasing = true;
-        }
-    }
-
-    private void ChaseBehavior()
-    {
-        if (playerTransform == null)
-        {
-            isChasing = false;
-            return;
-        }
-
-        float distance = Vector3.Distance(transform.position, playerTransform.position);
-        if (distance > chaseRadius)
-        {
-            isChasing = false;
-            // Return to nearest patrol point
-            if (pointA != null && pointB != null)
-            {
-                float distA = Vector3.Distance(transform.position, pointA.position);
-                float distB = Vector3.Distance(transform.position, pointB.position);
-                targetPosition = distA < distB ? pointA.position : pointB.position;
-                movingToB = (targetPosition == pointB.position);
-            }
-            return;
-        }
-
-        // Move towards player
-        float step = chaseSpeed * GlobalSpeedMultiplier * Time.deltaTime;
-        transform.position = Vector3.MoveTowards(transform.position, playerTransform.position, step);
-
-        // Face player
-        Vector3 direction = (playerTransform.position - transform.position).normalized;
-        direction.y = 0; // Keep rotation upright
-        if (direction != Vector3.zero)
-        {
-            Quaternion lookRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
-        }
-    }
-
-    private void PatrolBehavior()
-    {
-        if (pointA == null || pointB == null) return;
-
-        // Simple patrol logic
-        float step = moveSpeed * GlobalSpeedMultiplier * Time.deltaTime;
-        transform.position = Vector3.MoveTowards(transform.position, targetPosition, step);
-
-        // Face direction
-        Vector3 direction = (targetPosition - transform.position).normalized;
-        if (direction != Vector3.zero)
-        {
-            Quaternion lookRotation = Quaternion.LookRotation(direction);
-            transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
-        }
-
-        if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
-        {
-            waitTimer += Time.deltaTime;
-            if (waitTimer >= waitTime)
-            {
-                movingToB = !movingToB;
-                targetPosition = movingToB ? pointB.position : pointA.position;
-                waitTimer = 0f;
-            }
-        }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, chaseRadius);
-    }
+    
+    #endregion
 }

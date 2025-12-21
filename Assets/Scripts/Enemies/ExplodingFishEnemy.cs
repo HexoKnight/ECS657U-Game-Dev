@@ -1,114 +1,200 @@
 using UnityEngine;
 
+/// <summary>
+/// Exploding fish enemy that chases player and detonates when close.
+/// Uses state machine with custom PrimedToExplode state.
+/// </summary>
 public class ExplodingFishEnemy : EnemyBase
 {
-    [Header("Explosion Settings")]
-    public float detectionRadius = 10f;
-    public float explosionRadius = 5f;
-    public float explosionDelay = 1.5f;
-    public float chaseSpeedMultiplier = 2f;
+    #region Explosion Settings
     
-    [Header("Visuals")]
-    public GameObject explosionEffectPrefab;
-    public Color warningColor = Color.red;
+    [Header("Explosion Settings")]
+    [Tooltip("Radius of explosion detection and trigger")]
+    [SerializeField] private float explosionTriggerRadius = 2f;
+    
+    [Tooltip("Radius of explosion damage")]
+    [SerializeField] private float explosionDamageRadius = 5f;
+    
+    [Tooltip("Delay before explosion after being primed")]
+    [SerializeField] private float explosionDelay = 1.5f;
+    
+    [Tooltip("Damage multiplier for explosion (base is attackDamage)")]
+    [SerializeField] private float explosionDamageMultiplier = 5f;
+    
+    [Header("Explosion Visuals")]
+    [Tooltip("Prefab to spawn on explosion")]
+    [SerializeField] private GameObject explosionEffectPrefab;
+    
+    [Tooltip("Color to flash when primed")]
+    [SerializeField] private Color warningColor = Color.red;
+    
+    [Tooltip("Flash speed when primed")]
+    [SerializeField] private float flashSpeed = 10f;
+    
+    #endregion
 
-    private Transform playerTransform;
-    private bool isChasing = false;
-    private bool isExploding = false;
-    private float explodeTimer = 0f;
+    #region Private State
+    
     private Renderer rend;
     private Color originalColor;
+    private bool isPrimed = false;
+    
+    #endregion
 
-    public override void OnSpawn()
+    #region Properties
+    
+    public float ExplosionDelay => explosionDelay;
+    public bool IsPrimed => isPrimed;
+    
+    #endregion
+
+    #region Lifecycle
+    
+    protected override void Awake()
     {
-        base.OnSpawn();
+        base.Awake();
+        
         rend = GetComponent<Renderer>();
-        if (rend != null) originalColor = rend.material.color;
+        if (rend != null)
+        {
+            originalColor = rend.material.color;
+        }
+        
+        // Disable patrol for exploding fish - they just chase
+        usePatrol = false;
     }
-
-    private void Update()
+    
+    protected override EnemyState GetInitialState()
     {
-        if (playerTransform == null)
-        {
-            var player = FindFirstObjectByType<PlayerController>();
-            if (player != null) playerTransform = player.transform;
-            return;
-        }
+        // Start in idle, waiting for player
+        return new IdleState(stateMachine, this);
+    }
+    
+    #endregion
 
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
-
-        if (isExploding)
+    #region State Machine Overrides
+    
+    protected override void Update()
+    {
+        base.Update();
+        
+        // Check for priming condition during chase
+        if (!isPrimed && !isDead && playerDetector != null)
         {
-            explodeTimer -= Time.deltaTime;
-            // Flash color
-            if (rend != null)
+            float distance = playerDetector.GetDistanceToPlayer();
+            if (distance <= explosionTriggerRadius)
             {
-                float t = Mathf.PingPong(Time.time * 10f, 1f);
-                rend.material.color = Color.Lerp(originalColor, warningColor, t);
-            }
-
-            if (explodeTimer <= 0)
-            {
-                Explode();
-            }
-            return;
-        }
-
-        if (distanceToPlayer < detectionRadius)
-        {
-            isChasing = true;
-        }
-
-        if (isChasing)
-        {
-            // Chase
-            Vector3 direction = (playerTransform.position - transform.position).normalized;
-            transform.position += direction * moveSpeed * chaseSpeedMultiplier * GlobalSpeedMultiplier * Time.deltaTime;
-            transform.rotation = Quaternion.LookRotation(direction);
-
-            if (distanceToPlayer < explosionRadius * 0.5f) // Close enough to start detonation
-            {
-                StartExplosionSequence();
+                StartPriming();
             }
         }
     }
-
-    private void StartExplosionSequence()
+    
+    private void StartPriming()
     {
-        if (isExploding) return;
-        isExploding = true;
-        explodeTimer = explosionDelay;
+        if (isPrimed) return;
+        
+        isPrimed = true;
+        stateMachine.ChangeState(new PrimedToExplodeState(stateMachine, this));
     }
+    
+    #endregion
 
-    private void Explode()
+    #region Explosion
+    
+    /// <summary>
+    /// Called by PrimedToExplodeState to start visual feedback.
+    /// </summary>
+    public void StartPrimedVisuals()
     {
-        // Deal damage in radius
-        Collider[] hits = Physics.OverlapSphere(transform.position, explosionRadius);
+        // Animation trigger if available
+        animator?.SetBool("IsPrimed", true);
+    }
+    
+    /// <summary>
+    /// Called every frame during primed state.
+    /// </summary>
+    public void UpdatePrimedVisuals(float elapsedTime)
+    {
+        if (rend != null)
+        {
+            float t = Mathf.PingPong(elapsedTime * flashSpeed, 1f);
+            rend.material.color = Color.Lerp(originalColor, warningColor, t);
+        }
+    }
+    
+    /// <summary>
+    /// Execute the explosion - deals area damage and destroys self.
+    /// </summary>
+    public void Explode()
+    {
+        if (isDead) return;
+        
+        // Deal area damage
+        Collider[] hits = Physics.OverlapSphere(transform.position, explosionDamageRadius);
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Player"))
+            if (hit.gameObject == gameObject) continue;
+            
+            IDamageable damageable = hit.GetComponent<IDamageable>();
+            if (damageable == null)
             {
-                var damageable = hit.GetComponent<IDamageable>();
-                if (damageable != null)
-                {
-                     damageable.TakeDamage(contactDamage * 5f, transform.position, (hit.transform.position - transform.position).normalized);
-                }
+                damageable = hit.GetComponentInParent<IDamageable>();
+            }
+            
+            if (damageable != null)
+            {
+                float distance = Vector3.Distance(transform.position, hit.transform.position);
+                float falloff = 1f - (distance / explosionDamageRadius);
+                float damage = attackDamage * explosionDamageMultiplier * falloff * GlobalDamageMultiplier;
+                
+                Vector3 hitNormal = (hit.transform.position - transform.position).normalized;
+                
+                DamageData damageData = new DamageData(
+                    damage,
+                    transform.position,
+                    hitNormal,
+                    gameObject,
+                    DamageType.Explosion,
+                    knockbackForce * 2f // Extra knockback for explosion
+                );
+                
+                damageable.TakeDamage(damageData);
             }
         }
-
+        
+        // Spawn explosion effect
         if (explosionEffectPrefab != null)
         {
             Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
         }
-
-        OnDeath();
+        
+        if (debugStates)
+        {
+            Debug.Log($"[ExplodingFishEnemy] {name} exploded!");
+        }
+        
+        // Destroy self (bypass death state since we're exploding)
+        OnDeathEvent?.Invoke();
+        GameEvents.RaiseEntityDied(gameObject);
+        Destroy(gameObject);
     }
+    
+    #endregion
 
-    private void OnDrawGizmosSelected()
+    #region Gizmos
+    
+    protected override void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
+        base.OnDrawGizmosSelected();
+        
+        // Explosion trigger radius
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, explosionTriggerRadius);
+        
+        // Explosion damage radius
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.5f);
+        Gizmos.DrawWireSphere(transform.position, explosionDamageRadius);
     }
+    
+    #endregion
 }

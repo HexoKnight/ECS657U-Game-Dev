@@ -74,8 +74,15 @@ public class PlayerInputs : MonoBehaviour
 
 		Time.timeScale = paused ? 0 : 1;
 
-		// TODO: improve
-		if (wasPaused != paused) FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).gameObject.SetActive(paused);
+		// Show/hide pause menu with null check
+		if (wasPaused != paused) 
+		{
+			var pauseMenu = FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include);
+			if (pauseMenu != null)
+			{
+				pauseMenu.gameObject.SetActive(paused);
+			}
+		}
 	}
 
 	private void Start()

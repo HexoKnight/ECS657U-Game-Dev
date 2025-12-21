@@ -176,10 +176,14 @@ public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
         return;
 
     _currentHealth -= amount;
+    
+    // Broadcast damage event
+    GameEvents.RaiseEntityDamaged(gameObject, DamageData.Simple(amount, hitPoint, hitNormal));
 
     if (_currentHealth <= 0f)
     {
         // On death, respawn or reload scene.
+        GameEvents.RaiseEntityDied(gameObject);
         RespawnPlayer();
     }
     else
@@ -201,6 +205,49 @@ public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
     }
 }
 
+/// <summary>
+/// Implementation of IDamageable with DamageData struct.
+/// </summary>
+public void TakeDamage(DamageData damage)
+{
+    TakeDamage(damage.Amount, damage.HitPoint, damage.HitNormal);
+    
+    // Apply knockback from DamageData if specified
+    if (damage.KnockbackForce > 0f)
+    {
+        Vector3 knockbackDir = (transform.position - damage.HitPoint).normalized;
+        if (knockbackDir.sqrMagnitude < 0.01f)
+        {
+            knockbackDir = -damage.HitNormal.normalized;
+        }
+        AddVelocity(knockbackDir * damage.KnockbackForce);
+    }
+}
+
+/// <summary>
+/// Get current health value.
+/// </summary>
+public float GetCurrentHealth() => _currentHealth;
+
+/// <summary>
+/// Get maximum health value.
+/// </summary>
+public float GetMaxHealth() => maxHealth;
+
+/// <summary>
+/// Check if player is dead (health <= 0).
+/// </summary>
+public bool IsDead() => _currentHealth <= 0f;
+
+/// <summary>
+/// Heal the player by the specified amount.
+/// </summary>
+public void Heal(float amount)
+{
+    if (amount <= 0f) return;
+    _currentHealth = Mathf.Min(_currentHealth + amount, maxHealth);
+}
+
     /// <summary>
     /// Allows external systems (enemies, currents, etc.) to add an instantaneous velocity,
     /// e.g. for knockback after damage.
@@ -217,29 +264,34 @@ public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
     /// </summary>
     private void RespawnPlayer()
     {
+        Debug.Log("[PlayerController] RespawnPlayer called");
+        
+        // Reset health first to prevent re-triggering death
+        _currentHealth = maxHealth;
+        _isInvulnerable = true; // Temporary invulnerability after respawn
+        _invulnerabilityTimer = 2f; // 2 seconds of invulnerability
+        
         if (CheckpointManager.Instance != null)
         {
+            Debug.Log("[PlayerController] Respawning at checkpoint");
             CheckpointManager.Instance.RespawnPlayer(gameObject);
             
             // Reset velocity
-            _motor.BaseVelocity = Vector3.zero;
+            if (_motor != null)
+            {
+                _motor.BaseVelocity = Vector3.zero;
+            }
             _externalVelocityAdd = Vector3.zero;
-
-            // Reset health when respawning
-            _currentHealth = maxHealth;
-            _isInvulnerable = false;
-            _invulnerabilityTimer = 0f;
+            
+            // Raise respawn event
+            GameEvents.RaisePlayerRespawned(transform.position);
         }
         else
         {
+            Debug.Log("[PlayerController] No CheckpointManager, reloading scene");
             // Simple behaviour: reload scene
             Scene currentScene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(currentScene.name);
-
-            // Reset health when respawning
-            _currentHealth = maxHealth;
-            _isInvulnerable = false;
-            _invulnerabilityTimer = 0f;
         }
     }
 
