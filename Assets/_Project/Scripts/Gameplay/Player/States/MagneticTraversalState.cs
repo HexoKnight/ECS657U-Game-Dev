@@ -6,6 +6,8 @@ namespace GUP.Gameplay.Player.States
 {
     /// <summary>
     /// State for magnetic surface traversal. Handles walking on magnetic surfaces.
+    /// Note: MagnetWalker component handles attach/detach and sets PlayerController.targetUp.
+    /// This state observes the magnetic state but doesn't control attachment.
     /// </summary>
     public class MagneticTraversalState : PlayerState
     {
@@ -23,25 +25,27 @@ namespace GUP.Gameplay.Player.States
         {
             base.Enter();
             // Magnetic traversal initialization
+            // Note: targetUp is already set by MagnetWalker before entering this state
         }
         
         public override void Execute()
         {
             base.Execute();
-            // TODO: Magnetic walking input/movement logic will be migrated here
-            // For now, old PlayerController code still handles this
+            // TODO M5: Magnetic walking logic will be migrated here
+            // Movement uses the modified targetUp from MagnetWalker
         }
         
         public override void FixedExecute()
         {
-            // TODO: Magnetic physics will be migrated here
+            // TODO M5: Physics updates for magnetic traversal
         }
         
         public override void CheckTransitions()
         {
-            // TODO: Check for detachment from magnetic surface
-            // If detached:
-            // parentLocomotion.TransitionToSwimming();
+            // Check if MagnetWalker has detached (targetUp returned to Vector3.up)
+            // If so, transition back to GroundWalk
+            // if (Ctx.TargetUp == Vector3.up)
+            //     parentLocomotion.TransitionToGroundWalk();
         }
         
         public override void Exit()

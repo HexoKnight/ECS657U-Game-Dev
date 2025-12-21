@@ -4,17 +4,18 @@ namespace GUP.Gameplay.Player.States
 {
     /// <summary>
     /// Composite state managing locomotion substates.
-    /// Contains Swimming and MagneticTraversal as substates.
+    /// Contains GroundWalk and MagneticTraversal as substates.
+    /// Note: MagnetWalker component handles attach/detach externally.
     /// </summary>
     public class LocomotionState : PlayerCompositeState
     {
-        private readonly SwimmingState swimmingState;
+        private readonly GroundWalkState groundWalkState;
         private readonly MagneticTraversalState magneticTraversalState;
         
         public override string StateName => "Locomotion";
         
-        /// <summary>Access to SwimmingState for external transitions</summary>
-        public SwimmingState Swimming => swimmingState;
+        /// <summary>Access to GroundWalkState for external transitions</summary>
+        public GroundWalkState GroundWalk => groundWalkState;
         
         /// <summary>Access to MagneticTraversalState for external transitions</summary>
         public MagneticTraversalState MagneticTraversal => magneticTraversalState;
@@ -22,20 +23,20 @@ namespace GUP.Gameplay.Player.States
         public LocomotionState(IStateMachine stateMachine, PlayerContext context) 
             : base(stateMachine, context)
         {
-            swimmingState = new SwimmingState(stateMachine, context, this);
+            groundWalkState = new GroundWalkState(stateMachine, context, this);
             magneticTraversalState = new MagneticTraversalState(stateMachine, context, this);
         }
         
         protected override IState GetInitialSubstate()
         {
-            // Start in swimming by default (underwater game)
-            return swimmingState;
+            // Start in ground walk (player walks underwater)
+            return groundWalkState;
         }
         
-        /// <summary>Change to swimming substate</summary>
-        public void TransitionToSwimming()
+        /// <summary>Change to ground walk substate</summary>
+        public void TransitionToGroundWalk()
         {
-            ChangeSubstate(swimmingState);
+            ChangeSubstate(groundWalkState);
         }
         
         /// <summary>Change to magnetic traversal substate</summary>
