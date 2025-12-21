@@ -170,8 +170,8 @@ public class DamageDealer : MonoBehaviour
             hitNormal = transform.forward;
         }
         
-        // Apply DDA multiplier if available
-        float finalDamage = damageAmount * EnemyBase.GlobalDamageMultiplier;
+        // Use base damage amount (DDA multipliers should be applied at the Gameplay layer)
+        float finalDamage = damageAmount;
         
         // Create damage data
         DamageData damage = new DamageData(
