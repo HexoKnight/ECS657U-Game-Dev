@@ -54,6 +54,19 @@ namespace GUP.Gameplay.Player
         
         #endregion
 
+        #region Jump Buffer State (persists across state changes)
+        
+        /// <summary>Time since jump was requested (for input buffering)</summary>
+        public float TimeSinceJumpRequested { get; set; } = float.PositiveInfinity;
+        
+        /// <summary>Time since player was last able to jump (for coyote time)</summary>
+        public float TimeSinceLastAbleToJump { get; set; } = 0f;
+        
+        /// <summary>Whether the current jump has been consumed</summary>
+        public bool JumpConsumed { get; set; } = false;
+        
+        #endregion
+
         #region Constructor
         
         public PlayerContext(

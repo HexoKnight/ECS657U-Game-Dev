@@ -6,6 +6,9 @@ using UnityEngine.Splines;
 
 using GUP.Core;
 using GUP.Core.Config;
+using GUP.Core.StateMachine;
+using GUP.Gameplay.Player;
+using GUP.Gameplay.Player.States;
 using KinematicCharacterController;
 
 // lots of the initial code adapted from ExampleCharacterController in:
@@ -18,11 +21,9 @@ public delegate bool CalcForceField(Vector3 position, Vector3 velocity, out Vect
 [RequireComponent(typeof(PlayerInputs))]
 public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
 {
-    private enum PlayerState
-    {
-        Normal,
-        StaticSpline,
-    }
+    private StateMachineBase<PlayerContext> _stateMachine;
+    private PlayerContext _playerContext;
+    private AliveState _aliveState;
 
     [Header("Configuration")]
     [Tooltip("Optional: Movement config ScriptableObject. If not assigned, uses local serialized values.")]
@@ -110,15 +111,6 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
     // cinemachine
     private float _cinemachineTargetPitch;
 
-    // player state
-    private PlayerState _playerState = PlayerState.Normal;
-
-    // player state - normal
-    private bool _jumpedThisFrame = false;
-    private bool _jumpConsumed = false;
-    private float _timeSinceJumpRequested = float.PositiveInfinity;
-    private float _timeSinceLastAbleToJump = 0f;
-
     // player state - static spline
     private SplineContainer _currentPath;
     private System.Action _pathFinishCallback;
@@ -144,19 +136,16 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
         _currentPath = splineContainer;
         _pathFinishCallback = finishCallback;
         _pathSpeed = speed;
-        _distanceAlongPath = 0;
-
-        _playerState = PlayerState.StaticSpline;
+        _distanceAlongPath = 0f;
+        
+        _aliveState.TransitionToPathFollow();
     }
 
     public void ResetNormalState()
     {
-        _jumpedThisFrame = false;
-        _jumpConsumed = false;
-        _timeSinceJumpRequested = float.PositiveInfinity;
-        _timeSinceLastAbleToJump = 0f;
-
-        _playerState = PlayerState.Normal;
+        // NOTE: Do NOT reset jump timers here - they should persist across state changes
+        // to allow buffered jumps during transitions (e.g., magnet detach → free control)
+        _aliveState.TransitionToFreeControl();
     }
 
     public void EnterForceFieldRange(CalcForceField forceField)
@@ -320,6 +309,28 @@ public void Heal(float amount)
         _currentHealth = maxHealth;
         _isInvulnerable = false;
         _invulnerabilityTimer = 0f;
+        
+        // Init HFSM
+        _playerContext = new PlayerContext(
+            this,
+            _motor,
+            _input,
+            _playerInput,
+            movementConfig, 
+            cinemachineCameraTarget
+        );
+        
+        _stateMachine = new StateMachineBase<PlayerContext>(_playerContext);
+        _aliveState = new AliveState(_stateMachine, _playerContext);
+        
+        // Set initial state
+        _stateMachine.SetStateImmediate(_aliveState);
+    }
+
+    private void Start()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        _aliveState.Enter();
     }
 
     private void Update()
@@ -334,40 +345,22 @@ public void Heal(float amount)
                 _invulnerabilityTimer = 0f;
             }
         }
+        
+        // HFSM Update (Transition Checks + Execute)
+        _stateMachine.Update();
     }
 
     private void FixedUpdate()
     {
         DeadZoneCheck();
-
-        switch (_playerState)
-        {
-            case PlayerState.StaticSpline:
-                float pathLength = _currentPath.CalculateLength();
-
-                _distanceAlongPath = System.Math.Min(pathLength, _distanceAlongPath + _pathSpeed * Time.deltaTime);
-
-                float ratio = _distanceAlongPath / pathLength;
-
-                _currentPath.Evaluate(ratio, out var position, out var tangent, out var upVector);
-
-                Quaternion rotation = Quaternion.LookRotation(tangent, upVector);
-
-                _motor.SetPositionAndRotation(position, rotation, false);
-
-                if (ratio == 1f)
-                {
-                    _pathFinishCallback?.Invoke();
-                    ResetNormalState();
-                }
-
-                break;
-        }
+        
+        // HFSM FixedUpdate
+        _stateMachine.FixedUpdate();
     }
 
     private void LateUpdate()
     {
-        CameraRotation();
+        _stateMachine.LateUpdate();
     }
 
     private void DeadZoneCheck()
@@ -378,29 +371,6 @@ public void Heal(float amount)
         }
     }
 
-    private void CameraRotation()
-    {
-        switch (_playerState)
-        {
-            case PlayerState.Normal:
-                // Don't multiply mouse input by Time.deltaTime
-                float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
-
-                _cinemachineTargetPitch += _input.look.y * rotationSpeed * deltaTimeMultiplier;
-                float yawVelocity = _input.look.x * rotationSpeed * deltaTimeMultiplier;
-
-                // clamp our pitch rotation
-                _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);
-
-                // Update Cinemachine camera target pitch
-                cinemachineCameraTarget.localRotation =
-                    Quaternion.Euler(_cinemachineTargetPitch,
-                        cinemachineCameraTarget.localRotation.eulerAngles.y + yawVelocity,
-                        0.0f);
-
-                break;
-        }
-    }
 
     private static float ClampAngle(float lfAngle, float lfMin, float lfMax)
     {
@@ -410,190 +380,246 @@ public void Heal(float amount)
     }
 
     /// this function is the only place where rotation can be changed
+    /// this function is the only place where rotation can be changed
     public void UpdateRotation(ref Quaternion currentRotation, float deltaTime)
     {
-        switch (_playerState)
+        if (_stateMachine.CurrentState is PlayerState playerState)
         {
-            case PlayerState.Normal:
-                Vector3 cameraEulerAngles = cinemachineCameraTarget.localRotation.eulerAngles;
-                currentRotation *= Quaternion.Euler(0, cameraEulerAngles.y, 0);
-                cameraEulerAngles.y = 0;
-                cinemachineCameraTarget.localRotation = Quaternion.Euler(cameraEulerAngles);
-
-                Vector3 currentUp = currentRotation * Vector3.up;
-                Vector3 smoothedUp =
-                    Vector3.Slerp(currentUp, targetUp, 1 - Mathf.Exp(-alignUpSpeed * deltaTime));
-                currentRotation = Quaternion.FromToRotation(currentUp, smoothedUp) * currentRotation;
-
-                break;
+            playerState.OnUpdateRotation(ref currentRotation, deltaTime);
         }
     }
 
     /// this function is the only place where velocity can be changed
     public void UpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
     {
-        switch (_playerState)
+        if (_stateMachine.CurrentState is PlayerState playerState)
         {
-            case PlayerState.Normal:
-                bool anyForceFieldActive = false;
-                Vector3 totalForce = Vector3.zero;
-                foreach (CalcForceField calcForceField in _forceFields)
+            playerState.OnUpdateVelocity(ref currentVelocity, deltaTime);
+        }
+    }
+
+    // ------------- HFSM KERNELS -------------
+    
+    /// <summary>Kernel for free movement (was Normal state logic)</summary>
+    public void UpdateFreeMovement(ref Vector3 currentVelocity, float deltaTime)
+    {
+        bool anyForceFieldActive = false;
+        Vector3 totalForce = Vector3.zero;
+        foreach (CalcForceField calcForceField in _forceFields)
+        {
+            bool forceFieldActive = calcForceField(_motor.InitialSimulationPosition,
+                currentVelocity,
+                out Vector3 force,
+                deltaTime);
+            if (forceFieldActive)
+            {
+                anyForceFieldActive = true;
+                totalForce += force;
+            }
+        }
+
+        // assume a mass of 1 (ie. force == acceleration)
+        currentVelocity += totalForce * deltaTime;
+
+        if (_motor.GroundingStatus.IsStableOnGround &&
+            Vector3.Dot(totalForce, _motor.GroundingStatus.GroundNormal) > 0.1f)
+            _motor.ForceUnground();
+
+        Vector3 moveInputVector =
+            transform.TransformVector(new Vector3(_input.move.x, 0, _input.move.y));
+        if (!_input.analogMovement) moveInputVector.Normalize();
+
+        float currentMaxGroundSpeed = moveInputVector.magnitude * maxGroundMoveSpeed;
+        if (_input.sprint) currentMaxGroundSpeed *= sprintSpeedMultiplier;
+
+        // Ground movement
+        if (_motor.GroundingStatus.IsStableOnGround)
+        {
+            float currentVelocityMagnitude = currentVelocity.magnitude;
+
+            Vector3 effectiveGroundNormal = _motor.GroundingStatus.GroundNormal;
+
+            // Reorient velocity on slope
+            currentVelocity =
+                _motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) *
+                currentVelocityMagnitude;
+
+            // Calculate target velocity
+            Vector3 inputRight = Vector3.Cross(moveInputVector, _motor.CharacterUp);
+            Vector3 reorientedForward =
+                Vector3.Cross(effectiveGroundNormal, inputRight).normalized;
+            Vector3 targetMovementVelocity = reorientedForward * currentMaxGroundSpeed;
+
+            // Smooth movement Velocity
+            currentVelocity = Vector3.Lerp(currentVelocity,
+                targetMovementVelocity,
+                1f - Mathf.Exp(-groundAcceleration * deltaTime));
+        }
+        // Air movement
+        else
+        {
+            // Add move input
+            if (moveInputVector.sqrMagnitude > 0f)
+            {
+                Vector3 addedVelocity = moveInputVector * airAcceleration * deltaTime;
+
+                Vector3 currentVelocityOnInputsPlane =
+                    Vector3.ProjectOnPlane(currentVelocity, _motor.CharacterUp);
+
+                // Limit air velocity from inputs
+                if (currentVelocityOnInputsPlane.magnitude < maxAirMoveSpeed)
                 {
-                    bool forceFieldActive = calcForceField(_motor.InitialSimulationPosition,
-                        currentVelocity,
-                        out Vector3 force,
-                        deltaTime);
-                    if (forceFieldActive)
-                    {
-                        anyForceFieldActive = true;
-                        totalForce += force;
-                    }
+                    // clamp addedVel to make total vel not exceed max vel on inputs plane
+                    Vector3 newTotal =
+                        Vector3.ClampMagnitude(currentVelocityOnInputsPlane + addedVelocity,
+                            maxAirMoveSpeed);
+                    addedVelocity = newTotal - currentVelocityOnInputsPlane;
                 }
-
-                // assume a mass of 1 (ie. force == acceleration)
-                currentVelocity += totalForce * deltaTime;
-
-                if (_motor.GroundingStatus.IsStableOnGround &&
-                    Vector3.Dot(totalForce, _motor.GroundingStatus.GroundNormal) > 0.1f)
-                    _motor.ForceUnground();
-
-                Vector3 moveInputVector =
-                    transform.TransformVector(new Vector3(_input.move.x, 0, _input.move.y));
-                if (!_input.analogMovement) moveInputVector.Normalize();
-
-                float currentMaxGroundSpeed = moveInputVector.magnitude * maxGroundMoveSpeed;
-                if (_input.sprint) currentMaxGroundSpeed *= sprintSpeedMultiplier;
-
-                // Ground movement
-                if (_motor.GroundingStatus.IsStableOnGround)
-                {
-                    float currentVelocityMagnitude = currentVelocity.magnitude;
-
-                    Vector3 effectiveGroundNormal = _motor.GroundingStatus.GroundNormal;
-
-                    // Reorient velocity on slope
-                    currentVelocity =
-                        _motor.GetDirectionTangentToSurface(currentVelocity, effectiveGroundNormal) *
-                        currentVelocityMagnitude;
-
-                    // Calculate target velocity
-                    Vector3 inputRight = Vector3.Cross(moveInputVector, _motor.CharacterUp);
-                    Vector3 reorientedForward =
-                        Vector3.Cross(effectiveGroundNormal, inputRight).normalized;
-                    Vector3 targetMovementVelocity = reorientedForward * currentMaxGroundSpeed;
-
-                    // Smooth movement Velocity
-                    currentVelocity = Vector3.Lerp(currentVelocity,
-                        targetMovementVelocity,
-                        1f - Mathf.Exp(-groundAcceleration * deltaTime));
-                }
-                // Air movement
                 else
                 {
-                    // Add move input
-                    if (moveInputVector.sqrMagnitude > 0f)
+                    // Make sure added vel doesn't go in the direction of the already-exceeding velocity
+                    if (Vector3.Dot(currentVelocityOnInputsPlane, addedVelocity) > 0f)
                     {
-                        Vector3 addedVelocity = moveInputVector * airAcceleration * deltaTime;
-
-                        Vector3 currentVelocityOnInputsPlane =
-                            Vector3.ProjectOnPlane(currentVelocity, _motor.CharacterUp);
-
-                        // Limit air velocity from inputs
-                        if (currentVelocityOnInputsPlane.magnitude < maxAirMoveSpeed)
-                        {
-                            // clamp addedVel to make total vel not exceed max vel on inputs plane
-                            Vector3 newTotal =
-                                Vector3.ClampMagnitude(currentVelocityOnInputsPlane + addedVelocity,
-                                    maxAirMoveSpeed);
-                            addedVelocity = newTotal - currentVelocityOnInputsPlane;
-                        }
-                        else
-                        {
-                            // Make sure added vel doesn't go in the direction of the already-exceeding velocity
-                            if (Vector3.Dot(currentVelocityOnInputsPlane, addedVelocity) > 0f)
-                            {
-                                addedVelocity = Vector3.ProjectOnPlane(addedVelocity,
-                                    currentVelocityOnInputsPlane.normalized);
-                            }
-                        }
-
-                        // Prevent air-climbing sloped walls
-                        if (_motor.GroundingStatus.FoundAnyGround)
-                        {
-                            if (Vector3.Dot(currentVelocity + addedVelocity, addedVelocity) > 0f)
-                            {
-                                Vector3 perpenticularObstructionNormal =
-                                    Vector3.Cross(
-                                            Vector3.Cross(_motor.CharacterUp,
-                                                _motor.GroundingStatus.GroundNormal),
-                                            _motor.CharacterUp)
-                                        .normalized;
-                                addedVelocity =
-                                    Vector3.ProjectOnPlane(addedVelocity,
-                                        perpenticularObstructionNormal);
-                            }
-                        }
-
-                        // Apply added velocity
-                        currentVelocity += addedVelocity;
-                    }
-
-                    // Gravity
-                    // only use gravity if there are no active force fields
-                    if (useGravity && !anyForceFieldActive)
-                        currentVelocity += _motor.CharacterUp * gravity * deltaTime;
-
-                    // Drag
-                    currentVelocity *= 1f / (1f + (drag * deltaTime));
-                }
-
-                // Handle jumping
-                _jumpedThisFrame = false;
-                _timeSinceJumpRequested += deltaTime;
-                if (_input.jump)
-                {
-                    // See if we actually are allowed to jump
-                    if (!_jumpConsumed &&
-                        ((allowJumpingWhenSliding
-                              ? _motor.GroundingStatus.FoundAnyGround
-                              : _motor.GroundingStatus.IsStableOnGround) ||
-                         _timeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
-                    {
-                        // Calculate jump direction before ungrounding
-                        Vector3 jumpDirection = _motor.CharacterUp;
-                        if (_motor.GroundingStatus.FoundAnyGround &&
-                            !_motor.GroundingStatus.IsStableOnGround)
-                        {
-                            jumpDirection = _motor.GroundingStatus.GroundNormal;
-                        }
-
-                        // Makes the character skip ground probing/snapping on its next update.
-                        _motor.ForceUnground();
-
-                        // Add to the return velocity and reset jump state
-                        currentVelocity += (jumpDirection * jumpForce) -
-                                           Vector3.Project(currentVelocity, _motor.CharacterUp);
-                        currentVelocity += moveInputVector.normalized * JumpBoostSpeed *
-                                           currentMaxGroundSpeed;
-                        _input.jump = false;
-                        _jumpConsumed = true;
-                        _jumpedThisFrame = true;
+                        addedVelocity = Vector3.ProjectOnPlane(addedVelocity,
+                            currentVelocityOnInputsPlane.normalized);
                     }
                 }
 
-                // Apply external velocity (knockback, pushes, etc.)
-                if (_externalVelocityAdd.sqrMagnitude > 0f)
+                // Prevent air-climbing sloped walls
+                if (_motor.GroundingStatus.FoundAnyGround)
                 {
-                    currentVelocity += _externalVelocityAdd;
-                    _externalVelocityAdd = Vector3.zero;
+                    if (Vector3.Dot(currentVelocity + addedVelocity, addedVelocity) > 0f)
+                    {
+                        Vector3 perpenticularObstructionNormal =
+                            Vector3.Cross(
+                                    Vector3.Cross(_motor.CharacterUp,
+                                        _motor.GroundingStatus.GroundNormal),
+                                    _motor.CharacterUp)
+                                .normalized;
+                        addedVelocity =
+                            Vector3.ProjectOnPlane(addedVelocity,
+                                perpenticularObstructionNormal);
+                    }
                 }
 
-                break;
+                // Apply added velocity
+                currentVelocity += addedVelocity;
+            }
 
-            case PlayerState.StaticSpline:
-                currentVelocity = Vector3.zero;
-                break;
+            // Gravity
+            // only use gravity if there are no active force fields
+            if (useGravity && !anyForceFieldActive)
+                currentVelocity += _motor.CharacterUp * gravity * deltaTime;
+
+            // Drag
+            currentVelocity *= 1f / (1f + (drag * deltaTime));
         }
+
+        // Handle jumping (using context timers for persistence across state changes)
+        _playerContext.TimeSinceJumpRequested += deltaTime;
+        if (_input.jump)
+        {
+            // See if we actually are allowed to jump
+            if (!_playerContext.JumpConsumed &&
+                ((allowJumpingWhenSliding
+                      ? _motor.GroundingStatus.FoundAnyGround
+                      : _motor.GroundingStatus.IsStableOnGround) ||
+                 _playerContext.TimeSinceLastAbleToJump <= JumpPostGroundingGraceTime))
+            {
+                // Calculate jump direction before ungrounding
+                Vector3 jumpDirection = _motor.CharacterUp;
+                if (_motor.GroundingStatus.FoundAnyGround &&
+                    !_motor.GroundingStatus.IsStableOnGround)
+                {
+                    jumpDirection = _motor.GroundingStatus.GroundNormal;
+                }
+
+                // Makes the character skip ground probing/snapping on its next update.
+                _motor.ForceUnground();
+
+                // Add to the return velocity and reset jump state
+                currentVelocity += (jumpDirection * jumpForce) -
+                                   Vector3.Project(currentVelocity, _motor.CharacterUp);
+                currentVelocity += moveInputVector.normalized * JumpBoostSpeed *
+                                   currentMaxGroundSpeed;
+                _input.jump = false;
+                _playerContext.JumpConsumed = true;
+            }
+        }
+
+        // Apply external velocity (knockback, pushes, etc.)
+        if (_externalVelocityAdd.sqrMagnitude > 0f)
+        {
+            currentVelocity += _externalVelocityAdd;
+            _externalVelocityAdd = Vector3.zero;
+        }
+    }
+
+    /// <summary>Kernel for free rotation (was Normal state logic)</summary>
+    public void UpdateFreeRotation(ref Quaternion currentRotation, float deltaTime)
+    {
+        Vector3 cameraEulerAngles = cinemachineCameraTarget.localRotation.eulerAngles;
+        currentRotation *= Quaternion.Euler(0, cameraEulerAngles.y, 0);
+        cameraEulerAngles.y = 0;
+        cinemachineCameraTarget.localRotation = Quaternion.Euler(cameraEulerAngles);
+
+        Vector3 currentUp = currentRotation * Vector3.up;
+        Vector3 smoothedUp =
+            Vector3.Slerp(currentUp, targetUp, 1 - Mathf.Exp(-alignUpSpeed * deltaTime));
+        currentRotation = Quaternion.FromToRotation(currentUp, smoothedUp) * currentRotation;
+    }
+
+    /// <summary>Kernel for free camera (was Normal state logic)</summary>
+    public void UpdateFreeCamera()
+    {
+        // Don't multiply mouse input by Time.deltaTime
+        float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
+
+        _cinemachineTargetPitch += _input.look.y * rotationSpeed * deltaTimeMultiplier;
+        float yawVelocity = _input.look.x * rotationSpeed * deltaTimeMultiplier;
+
+        // clamp our pitch rotation
+        _cinemachineTargetPitch = ClampAngle(_cinemachineTargetPitch, bottomClamp, topClamp);
+
+        // Update Cinemachine camera target pitch
+        cinemachineCameraTarget.localRotation =
+            Quaternion.Euler(_cinemachineTargetPitch,
+                cinemachineCameraTarget.localRotation.eulerAngles.y + yawVelocity,
+                0.0f);
+    }
+    
+    /// <summary>Kernel for path following (StaticSpline logic)</summary>
+    public void UpdatePathFollowing(float deltaTime)
+    {
+         float pathLength = _currentPath.CalculateLength();
+
+         _distanceAlongPath = System.Math.Min(pathLength, _distanceAlongPath + _pathSpeed * deltaTime);
+
+         float ratio = _distanceAlongPath / pathLength;
+
+         _currentPath.Evaluate(ratio, out var position, out var tangent, out var upVector);
+
+         Quaternion rotation = Quaternion.LookRotation(tangent, upVector);
+
+         _motor.SetPositionAndRotation(position, rotation, false);
+
+         if (ratio == 1f)
+         {
+             _pathFinishCallback?.Invoke();
+             // HFSM transition back to Normal/Free must be handled by the caller or event
+             // But for legacy compat, we called ResetNormalState().
+             // We will now fire an event or let the state handle it.
+             // For now, we'll keep the logic simple here and maybe return a bool 'isFinished'?
+             // But the original code called ResetNormalState() which just set the enum.
+             // We can event this out or return bool.
+             OnPathFinished();
+         }
+    }
+    
+    private void OnPathFinished()
+    {
+         // This will be hooked up to HFSM transition
+         // For now, let's keep it empty or we can repurpose ResetNormalState logic to trigger HFSM
     }
 
     public void BeforeCharacterUpdate(float deltaTime)
@@ -606,37 +632,30 @@ public void Heal(float amount)
 
     public void AfterCharacterUpdate(float deltaTime)
     {
-        switch (_playerState)
+        // Update coyote timer regardless of state (persists across state changes)
+        bool canJumpFromGround = allowJumpingWhenSliding
+            ? _motor.GroundingStatus.FoundAnyGround
+            : _motor.GroundingStatus.IsStableOnGround;
+
+        if (canJumpFromGround)
         {
-            case PlayerState.Normal:
-                // Handle jump-related values
-                {
-                    // Handle jumping pre-ground grace period
-                    if (_input.jump && _timeSinceJumpRequested > JumpPreGroundingGraceTime)
-                    {
-                        _input.jump = false;
-                    }
+            // On ground: reset coyote timer and allow new jump
+            _playerContext.TimeSinceLastAbleToJump = 0f;
+            
+            // Only reset JumpConsumed if grounded (allows re-jump after landing)
+            // Note: ForceUnground is called when jumping, so this won't fire same frame
+            _playerContext.JumpConsumed = false;
+        }
+        else
+        {
+            // Not grounded: accumulate coyote time
+            _playerContext.TimeSinceLastAbleToJump += deltaTime;
+        }
 
-                    if (allowJumpingWhenSliding
-                            ? _motor.GroundingStatus.FoundAnyGround
-                            : _motor.GroundingStatus.IsStableOnGround)
-                    {
-                        // If we're on a ground surface, reset jumping values
-                        if (!_jumpedThisFrame)
-                        {
-                            _jumpConsumed = false;
-                        }
-
-                        _timeSinceLastAbleToJump = 0f;
-                    }
-                    else
-                    {
-                        // Keep track of time since we were last able to jump (for grace period)
-                        _timeSinceLastAbleToJump += deltaTime;
-                    }
-                }
-
-                break;
+        // Delegate to active state for state-specific post-update logic
+        if (_stateMachine.CurrentState is PlayerState playerState)
+        {
+            playerState.OnAfterCharacterUpdate(deltaTime);
         }
     }
 
