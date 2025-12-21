@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Dead state - enemy death sequence.
 /// Plays death animation and cleans up.
