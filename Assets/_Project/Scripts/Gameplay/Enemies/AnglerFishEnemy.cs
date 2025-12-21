@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Anglerfish enemy that lurks in shadows and ambushes with its lure.
 /// Uses a glowing lure to attract the player, then lunges for high damage.

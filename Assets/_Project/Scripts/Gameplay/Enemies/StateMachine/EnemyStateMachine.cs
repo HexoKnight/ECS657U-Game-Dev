@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Manages enemy state transitions and executes current state logic.
 /// Attach to enemy GameObjects alongside EnemyBase-derived scripts.

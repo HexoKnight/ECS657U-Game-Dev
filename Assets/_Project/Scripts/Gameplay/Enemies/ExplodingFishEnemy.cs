@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Exploding fish enemy that chases player and detonates when close.
 /// Uses state machine with custom PrimedToExplode state.

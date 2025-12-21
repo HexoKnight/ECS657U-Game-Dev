@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Dynamic Difficulty Adjustment (DDA) system that monitors player performance
 /// and adjusts game difficulty in real-time.

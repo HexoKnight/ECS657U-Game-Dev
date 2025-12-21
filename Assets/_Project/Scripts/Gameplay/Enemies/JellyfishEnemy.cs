@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Jellyfish enemy that creates an electric shock zone around itself.
 /// Drifts slowly and pulses damage when player is nearby.

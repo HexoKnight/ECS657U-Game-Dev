@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using System.Collections.Generic;
 
+using GUP.Core;
 /// <summary>
 /// Base class for all enemies. Integrates with state machine and health system.
 /// Extend this class to create specific enemy types.

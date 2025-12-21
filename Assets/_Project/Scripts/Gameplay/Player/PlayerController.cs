@@ -4,6 +4,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.Splines;
 
+using GUP.Core;
 using KinematicCharacterController;
 
 // lots of the initial code adapted from ExampleCharacterController in:

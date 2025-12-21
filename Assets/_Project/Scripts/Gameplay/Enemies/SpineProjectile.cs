@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Projectile spine fired by SpikyFishEnemy.
 /// Deals damage on contact and destroys itself.

@@ -1,5 +1,6 @@
 using UnityEngine;
 
+using GUP.Core;
 /// <summary>
 /// Abstract base class for all enemy states.
 /// Each state defines behavior for Enter, Execute, Exit, and CheckTransitions.
