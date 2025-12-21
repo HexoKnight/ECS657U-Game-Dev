@@ -190,8 +190,56 @@ Moved gameplay-specific MonoBehaviours out of Core into Gameplay.
 
 ---
 
+## Phase 3B: Event Channel Vertical Slice Migration
+
+### Branch: `refactor/phase3-migrations`
+### Base: `refactor/phase3-ownership`
+
+### Damage Pipeline Migration
+
+Migrated the damage pipeline from static `GameEvents.cs` to ScriptableObject Event Channels.
+
+#### Commits
+
+| Hash | Description |
+|------|-------------|
+| `102c4cf` | Add event channel integration to HealthComponent |
+| `2edf846` | Add event channel ScriptableObject assets |
+
+#### HealthComponent Changes
+
+Added optional event channel fields:
+- `DamageEventChannel damageEventChannel` - Broadcasts when entity takes damage
+- `FloatEventChannel healthChangedChannel` - Broadcasts normalized health (0-1)
+- `VoidEventChannel deathEventChannel` - Broadcasts when entity dies
+
+Modified methods:
+- `TakeDamage()` - Raises `damageEventChannel` and `healthChangedChannel`
+- `Die()` - Raises `deathEventChannel`
+
+Legacy `GameEvents` calls retained for backward compatibility.
+
+#### Event Channel Assets Created
+
+| Asset | Type | Purpose |
+|-------|------|---------|
+| `OnDamageDealt` | DamageEventChannel | Any entity takes damage |
+| `OnPlayerHealthChanged` | FloatEventChannel | Player health changes |
+| `OnPlayerDied` | VoidEventChannel | Player dies |
+| `OnEnemyHealthChanged` | FloatEventChannel | Enemy health changes |
+
+#### Wiring Required
+
+In Unity, assign event channels on Player and Enemy prefabs:
+1. Select Player prefab → HealthComponent
+2. Assign `OnPlayerHealthChanged` to `Health Changed Channel`
+3. Assign `OnPlayerDied` to `Death Event Channel`
+4. Repeat for enemies with their respective channels
+
+---
+
 ## Next Steps
 
 1. **Verify in Unity Editor**: 0 compile errors
-2. **Play MainScene + EnemiesDemo**: No exceptions
-3. **Create PR**: `refactor/phase3-ownership` → `refactor/phase2-production-quality`
+2. **Wire prefabs**: Assign event channels in Player prefab
+3. **Play MainScene + EnemiesDemo**: Damage still works
