@@ -7,7 +7,7 @@ namespace GUP.Core.StateMachine
     /// Manages state transitions and executes current state logic.
     /// </summary>
     /// <typeparam name="TContext">The context type (e.g., PlayerController)</typeparam>
-    public class StateMachineBase<TContext> : IStateMachine where TContext : MonoBehaviour
+    public class StateMachineBase<TContext> : IStateMachine where TContext : class
     {
         private IState currentState;
         private readonly TContext context;
@@ -30,7 +30,8 @@ namespace GUP.Core.StateMachine
         {
             if (newState == null)
             {
-                Debug.LogWarning($"[StateMachine] Attempted to change to null state on {context.name}");
+                string ctxName = context?.GetType().Name ?? typeof(TContext).Name;
+                UnityEngine.Debug.LogWarning($"[StateMachine] Attempted to change to null state on {ctxName}");
                 return;
             }
             
@@ -62,6 +63,14 @@ namespace GUP.Core.StateMachine
         public void FixedUpdate()
         {
             currentState?.FixedExecute();
+        }
+
+        /// <summary>
+        /// Late update the state machine. Call from MonoBehaviour.LateUpdate.
+        /// </summary>
+        public void LateUpdate()
+        {
+            currentState?.LateExecute();
         }
     }
 }

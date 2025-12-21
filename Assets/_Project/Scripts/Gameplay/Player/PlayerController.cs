@@ -596,37 +596,68 @@ public void Heal(float amount)
     }
     
     /// <summary>Kernel for path following (StaticSpline logic)</summary>
-    public void UpdatePathFollowing(float deltaTime)
+    /// <returns>True if path finished this frame</returns>
+    public bool UpdatePathFollowing(float deltaTime)
     {
-         float pathLength = _currentPath.CalculateLength();
-
-         _distanceAlongPath = System.Math.Min(pathLength, _distanceAlongPath + _pathSpeed * deltaTime);
-
-         float ratio = _distanceAlongPath / pathLength;
-
-         _currentPath.Evaluate(ratio, out var position, out var tangent, out var upVector);
-
-         Quaternion rotation = Quaternion.LookRotation(tangent, upVector);
-
-         _motor.SetPositionAndRotation(position, rotation, false);
-
-         if (ratio == 1f)
-         {
-             _pathFinishCallback?.Invoke();
-             // HFSM transition back to Normal/Free must be handled by the caller or event
-             // But for legacy compat, we called ResetNormalState().
-             // We will now fire an event or let the state handle it.
-             // For now, we'll keep the logic simple here and maybe return a bool 'isFinished'?
-             // But the original code called ResetNormalState() which just set the enum.
-             // We can event this out or return bool.
-             OnPathFinished();
-         }
-    }
-    
-    private void OnPathFinished()
-    {
-         // This will be hooked up to HFSM transition
-         // For now, let's keep it empty or we can repurpose ResetNormalState logic to trigger HFSM
+        if (_currentPath == null) return true; // No path, consider finished
+        
+        float pathLength = _currentPath.CalculateLength();
+        if (pathLength <= 0f) return true; // Invalid path
+        
+        _distanceAlongPath += _pathSpeed * deltaTime;
+        
+        // Clamp and check for end-of-path
+        float ratio = Mathf.Clamp01(_distanceAlongPath / pathLength);
+        const float endEpsilon = 0.001f;
+        
+        // End-of-path: finalize BEFORE evaluating last frame to avoid stuck state
+        if (ratio >= 1f - endEpsilon)
+        {
+            GupDebug.LogPathComplete(gameObject.name);
+            _pathFinishCallback?.Invoke();
+            _pathFinishCallback = null;
+            _currentPath = null;
+            
+            // Transition to FreeControl immediately
+            _aliveState.TransitionToFreeControl();
+            return true;
+        }
+        
+        // Evaluate spline
+        _currentPath.Evaluate(ratio, out var position, out var tangent, out var upVector);
+        
+        // Guard against zero tangent (LookRotation would error)
+        Vector3 safeForward = tangent;
+        if (safeForward.sqrMagnitude < 1e-6f)
+        {
+            safeForward = _motor.CharacterForward; // Fallback to current forward
+        }
+        else
+        {
+            safeForward = safeForward.normalized;
+        }
+        
+        // Guard against zero up vector
+        Vector3 safeUp = upVector;
+        if (safeUp.sqrMagnitude < 1e-6f)
+        {
+            safeUp = _motor.CharacterUp; // Fallback to current up
+        }
+        else
+        {
+            safeUp = safeUp.normalized;
+        }
+        
+        // Ensure forward and up aren't parallel
+        if (Mathf.Abs(Vector3.Dot(safeForward, safeUp)) > 0.999f)
+        {
+            safeUp = Vector3.up; // Fallback to world up
+        }
+        
+        Quaternion rotation = Quaternion.LookRotation(safeForward, safeUp);
+        _motor.SetPositionAndRotation(position, rotation, false);
+        
+        return false;
     }
 
     public void BeforeCharacterUpdate(float deltaTime)

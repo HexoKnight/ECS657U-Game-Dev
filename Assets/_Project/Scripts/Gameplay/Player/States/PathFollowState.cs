@@ -26,13 +26,13 @@ namespace GUP.Gameplay.Player.States
         public override void FixedExecute()
         {
             base.FixedExecute();
-            // Path following happens in FixedUpdate (KCC lifecycle) or just Update depending on original code.
-            // Original code had it in FixedUpdate loop for KCC? 
-            // Wait, standard KCC uses UpdateVelocity/Rotation.
-            // But StaticSpline case in `FixedUpdate` (line 345) explicitly does logic.
-            // So we call the kernel here.
             
-            Ctx.Controller.UpdatePathFollowing(Time.deltaTime);
+            // Call path following kernel - it handles end-of-path transition internally
+            // If it returns true, path is finished and we've transitioned to FreeControl
+            bool pathFinished = Ctx.Controller.UpdatePathFollowing(Time.deltaTime);
+            
+            // If path finished, this state is no longer active
+            // No further processing needed
         }
         
         public override void OnUpdateRotation(ref Quaternion currentRotation, float deltaTime)
