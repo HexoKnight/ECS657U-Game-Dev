@@ -7,7 +7,7 @@ namespace GUP.Core.StateMachine
     /// Parent state owns a current substate and delegates execution to it.
     /// </summary>
     /// <typeparam name="TContext">The context type (e.g., PlayerController)</typeparam>
-    public abstract class CompositeStateBase<TContext> : StateBase<TContext> where TContext : MonoBehaviour
+    public abstract class CompositeStateBase<TContext> : StateBase<TContext> where TContext : class
     {
         private IState currentSubstate;
         
@@ -64,6 +64,15 @@ namespace GUP.Core.StateMachine
             
             // Delegate to substate
             currentSubstate?.FixedExecute();
+        }
+
+        /// <inheritdoc/>
+        public override void LateExecute()
+        {
+            base.LateExecute();
+            
+            // Delegate to substate
+            currentSubstate?.LateExecute();
         }
         
         /// <inheritdoc/>

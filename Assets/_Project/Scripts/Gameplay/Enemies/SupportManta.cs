@@ -34,7 +34,9 @@ public class SupportManta : MonoBehaviour
     [SerializeField] private Vector3 riderOffset = new Vector3(0, 0.5f, 0);
     
     [Tooltip("How quickly riders sync to manta movement")]
+    #pragma warning disable 0414
     [SerializeField] private float riderSyncSpeed = 10f;
+    #pragma warning restore 0414
     
     #endregion
 

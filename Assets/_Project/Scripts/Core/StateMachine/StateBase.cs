@@ -6,16 +6,13 @@ namespace GUP.Core.StateMachine
     /// Base class for states with common functionality.
     /// </summary>
     /// <typeparam name="TContext">The context type (e.g., PlayerController, EnemyBase)</typeparam>
-    public abstract class StateBase<TContext> : IState where TContext : MonoBehaviour
+    public abstract class StateBase<TContext> : IState where TContext : class
     {
         /// <summary>Reference to the state machine</summary>
         protected IStateMachine StateMachine { get; }
         
         /// <summary>Reference to the context (owner)</summary>
         protected TContext Context { get; }
-        
-        /// <summary>Convenient access to context transform</summary>
-        protected Transform Transform => Context.transform;
         
         /// <inheritdoc/>
         public abstract string StateName { get; }
@@ -34,7 +31,7 @@ namespace GUP.Core.StateMachine
         {
             StateTime = 0f;
             #if UNITY_EDITOR
-            Debug.Log($"[{Context.name}] → {StateName}");
+            // Debug.Log($"[{Context}] → {StateName}"); 
             #endif
         }
         
@@ -48,10 +45,13 @@ namespace GUP.Core.StateMachine
         public virtual void FixedExecute() { }
         
         /// <inheritdoc/>
+        public virtual void LateExecute() { }
+        
+        /// <inheritdoc/>
         public virtual void Exit()
         {
             #if UNITY_EDITOR
-            Debug.Log($"[{Context.name}] ← {StateName}");
+            // Debug.Log($"[{Context}] ← {StateName}");
             #endif
         }
         

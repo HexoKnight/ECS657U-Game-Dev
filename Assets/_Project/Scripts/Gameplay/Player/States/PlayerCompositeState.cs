@@ -6,25 +6,14 @@ namespace GUP.Gameplay.Player.States
 {
     /// <summary>
     /// Base class for composite player states that contain substates.
+    /// Inherits from PlayerState to support KCC callbacks.
     /// </summary>
-    public abstract class PlayerCompositeState : IState
+    public abstract class PlayerCompositeState : PlayerState
     {
         private IState currentSubstate;
         
-        /// <summary>Reference to the root state machine</summary>
-        protected IStateMachine StateMachine { get; }
-        
-        /// <summary>Context containing all player references</summary>
-        protected PlayerContext Ctx { get; }
-        
-        /// <summary>Time spent in this composite state</summary>
-        protected float StateTime { get; private set; }
-        
         /// <summary>Current active substate</summary>
         public IState CurrentSubstate => currentSubstate;
-        
-        /// <inheritdoc/>
-        public abstract string StateName { get; }
         
         /// <summary>Full path including substates for debugging</summary>
         public string FullStatePath => currentSubstate != null 
@@ -32,21 +21,17 @@ namespace GUP.Gameplay.Player.States
             : StateName;
         
         protected PlayerCompositeState(IStateMachine stateMachine, PlayerContext context)
+            : base(stateMachine, context)
         {
-            StateMachine = stateMachine;
-            Ctx = context;
         }
         
         /// <summary>Override to return the initial substate</summary>
         protected abstract IState GetInitialSubstate();
         
         /// <inheritdoc/>
-        public virtual void Enter()
+        public override void Enter()
         {
-            StateTime = 0f;
-            #if UNITY_EDITOR
-            Debug.Log($"[Player] → {StateName}");
-            #endif
+            base.Enter();
             
             var initial = GetInitialSubstate();
             if (initial != null)
@@ -56,9 +41,9 @@ namespace GUP.Gameplay.Player.States
         }
         
         /// <inheritdoc/>
-        public virtual void Execute()
+        public override void Execute()
         {
-            StateTime += Time.deltaTime;
+            base.Execute();
             
             if (currentSubstate != null)
             {
@@ -68,24 +53,51 @@ namespace GUP.Gameplay.Player.States
         }
         
         /// <inheritdoc/>
-        public virtual void FixedExecute()
+        public override void FixedExecute()
         {
+            base.FixedExecute();
             currentSubstate?.FixedExecute();
+        }
+
+        public override void LateExecute()
+        {
+            base.LateExecute();
+            currentSubstate?.LateExecute();
         }
         
         /// <inheritdoc/>
-        public virtual void Exit()
+        public override void Exit()
         {
             currentSubstate?.Exit();
             currentSubstate = null;
-            
-            #if UNITY_EDITOR
-            Debug.Log($"[Player] ← {StateName}");
-            #endif
+            base.Exit();
         }
         
-        /// <inheritdoc/>
-        public virtual void CheckTransitions() { }
+        // KCC Delegations
+        
+        public override void OnUpdateVelocity(ref Vector3 currentVelocity, float deltaTime)
+        {
+            if (currentSubstate is PlayerState playerState)
+            {
+                playerState.OnUpdateVelocity(ref currentVelocity, deltaTime);
+            }
+        }
+        
+        public override void OnUpdateRotation(ref Quaternion currentRotation, float deltaTime)
+        {
+            if (currentSubstate is PlayerState playerState)
+            {
+                playerState.OnUpdateRotation(ref currentRotation, deltaTime);
+            }
+        }
+
+        public override void OnAfterCharacterUpdate(float deltaTime)
+        {
+            if (currentSubstate is PlayerState playerState)
+            {
+                playerState.OnAfterCharacterUpdate(deltaTime);
+            }
+        }
         
         /// <summary>Change to a new substate within this composite</summary>
         protected void ChangeSubstate(IState newSubstate)

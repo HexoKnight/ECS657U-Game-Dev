@@ -4,26 +4,41 @@ namespace GUP.Gameplay.Player.States
 {
     /// <summary>
     /// Root composite state for when the player is alive and active.
-    /// Contains Locomotion as initial substate.
+    /// Manages high-level modes: Free Control (Normal) vs Path Following (Cinematic/Spline).
     /// </summary>
     public class AliveState : PlayerCompositeState
     {
-        private readonly LocomotionState locomotionState;
+        private readonly FreeControlState freeControlState;
+        private readonly PathFollowState pathFollowState;
         
         public override string StateName => "Alive";
+        
+        public FreeControlState FreeControl => freeControlState;
+        public PathFollowState PathFollow => pathFollowState;
         
         public AliveState(IStateMachine stateMachine, PlayerContext context) 
             : base(stateMachine, context)
         {
-            locomotionState = new LocomotionState(stateMachine, context);
+            freeControlState = new FreeControlState(stateMachine, context);
+            pathFollowState = new PathFollowState(stateMachine, context);
         }
         
-        protected override IState GetInitialSubstate() => locomotionState;
+        protected override IState GetInitialSubstate() => freeControlState;
+        
+        public void TransitionToFreeControl()
+        {
+            ChangeSubstate(freeControlState);
+        }
+        
+        public void TransitionToPathFollow()
+        {
+            ChangeSubstate(pathFollowState);
+        }
         
         public override void CheckTransitions()
         {
-            // TODO: Transition to Dead state when health <= 0
-            // For now, stay alive
+            // Transitions are mostly driven by external events (StartStaticSpline)
+            // or completion callbacks (Path Finished).
         }
     }
 }

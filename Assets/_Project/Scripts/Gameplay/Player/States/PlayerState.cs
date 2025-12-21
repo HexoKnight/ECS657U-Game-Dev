@@ -31,9 +31,7 @@ namespace GUP.Gameplay.Player.States
         public virtual void Enter()
         {
             StateTime = 0f;
-            #if UNITY_EDITOR
-            Debug.Log($"[Player] → {StateName}");
-            #endif
+            GupDebug.LogStateTransition("[none]", StateName, "Enter");
         }
         
         /// <inheritdoc/>
@@ -46,14 +44,23 @@ namespace GUP.Gameplay.Player.States
         public virtual void FixedExecute() { }
         
         /// <inheritdoc/>
+        public virtual void LateExecute() { }
+        
+        /// <inheritdoc/>
         public virtual void Exit()
         {
-            #if UNITY_EDITOR
-            Debug.Log($"[Player] ← {StateName}");
-            #endif
+            GupDebug.LogStateTransition(StateName, "[none]", "Exit");
         }
         
         /// <inheritdoc/>
         public virtual void CheckTransitions() { }
+        
+        // KCC Callbacks
+        
+        public virtual void OnUpdateVelocity(ref Vector3 currentVelocity, float deltaTime) { }
+        
+        public virtual void OnUpdateRotation(ref Quaternion currentRotation, float deltaTime) { }
+        
+        public virtual void OnAfterCharacterUpdate(float deltaTime) { }
     }
 }

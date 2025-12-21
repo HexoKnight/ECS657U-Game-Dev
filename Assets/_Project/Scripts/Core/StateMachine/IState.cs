@@ -17,6 +17,9 @@ namespace GUP.Core.StateMachine
         /// <summary>Called during FixedUpdate for physics operations</summary>
         void FixedExecute();
         
+        /// <summary>Called during LateUpdate for camera/animation operations</summary>
+        void LateExecute();
+        
         /// <summary>Called when exiting this state</summary>
         void Exit();
         

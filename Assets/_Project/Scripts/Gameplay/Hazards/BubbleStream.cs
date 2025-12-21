@@ -30,7 +30,9 @@ public class BubbleStream : MonoBehaviour
     [SerializeField] private float forceRampSpeed = 3f;
     
     [Tooltip("Maximum additional velocity that can be added")]
+    #pragma warning disable 0414
     [SerializeField] private float maxVelocityBoost = 10f;
+    #pragma warning restore 0414
     
     [Header("Visuals")]
     [Tooltip("Particle system for bubble effect")]
