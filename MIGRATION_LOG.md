@@ -336,8 +336,63 @@ Extended `HazardConfig` with additional fields for non-damage hazards:
 
 ---
 
+## Phase 4: Player HFSM Implementation
+
+### Branch: `refactor/phase4-player-hfsm`
+### Base: `refactor/phase3d-hazard-configs`
+
+### Milestone 1: Core HFSM Support
+
+| Commit | Description |
+|--------|-------------|
+| `8c17713` | Core: add hierarchical state support (HFSM) |
+
+Added `CompositeStateBase<TContext>`:
+- Parent states own and delegate to child substates
+- `ChangeSubstate()` for internal transitions
+- `RequestParentTransition()` for bubbling up
+- `FullStatePath` for debugging hierarchy
+
+### Milestone 2: PlayerContext + HFSM Scaffold
+
+| Commit | Description |
+|--------|-------------|
+| `ad2db0a` | Player: add PlayerContext + HFSM scaffold |
+
+**New Files:**
+- `PlayerContext.cs` - Component refs, config, runtime state
+- `PlayerState.cs` - Base class for leaf states
+- `PlayerCompositeState.cs` - Base for hierarchical states
+
+### Milestone 3: State Tree Structure
+
+| Commit | Description |
+|--------|-------------|
+| `47899b1` | Player: add HFSM state tree + transitions scaffold |
+
+**Hierarchy Created:**
+```
+Root
+└─ AliveState (composite)
+    └─ LocomotionState (composite)
+        ├─ SwimmingState (leaf)
+        └─ MagneticTraversalState (leaf)
+```
+
+### Design Notes
+
+Current PlayerController uses a simpler enum-based state (Normal/StaticSpline) with unified movement logic.
+The HFSM infrastructure is now in place for future state-based expansion.
+
+**What Was Preserved:**
+- All existing movement behavior unchanged
+- PlayerController class/file stable (prefab safety)
+- No GC allocations in state updates
+
+---
+
 ## Next Steps
 
 1. **Verify in Unity Editor**: 0 compile errors
-2. **Wire hazard prefabs**: Assign HazardConfig assets
-3. **Play MainScene + EnemiesDemo**: Behavior unchanged
+2. **Play MainScene**: Movement works as before
+3. **Future expansion**: Migrate more logic into HFSM states as needed
