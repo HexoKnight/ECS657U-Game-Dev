@@ -18,9 +18,13 @@ This log tracks all changes during Phase 2 refactoring.
 ### Changes
 | Commit | Description | Verification |
 |--------|-------------|--------------|
-| (pending) | Add namespaces to Core scripts | Compile clean |
-| (pending) | Add namespaces to Gameplay scripts | Compile + Play |
-| (pending) | Add namespaces to UI scripts | Compile + Play |
+| `1eed1cf` | Add GUP.Core namespace to all Core scripts (8 files) | Pending |
+| `ba483a1` | Add 'using GUP.Core' to Gameplay/UI (10 files) | Pending |
+
+### Files Modified
+- **Core (8 files)**: DamageType, EntityType, DamageData, IDamageable, GameEvents, Options, HealthComponent, DamageDealer
+- **Gameplay (9 files)**: PlayerController, EnemyBase, SpineProjectile, EnemyState, EnemyStateMachine, DifficultyManager, AnglerFish, ExplodingFish, Jellyfish
+- **UI (1 file)**: OptionsMenu
 
 ### Rollback
 If namespace changes break prefab serialization:
