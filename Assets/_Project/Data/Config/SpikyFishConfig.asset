@@ -24,5 +24,3 @@ MonoBehaviour:
   attackCooldown: 1
   knockbackForce: 8
   deathDuration: 2
-</Parameter>
-<parameter name="Complexity">4
