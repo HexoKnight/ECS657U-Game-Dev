@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using GUP.Core.Debug;
 using GUP.Core.StateMachine;
 
 namespace GUP.Gameplay.Player.States
