@@ -5,6 +5,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.Splines;
 
 using GUP.Core;
+using GUP.Core.Config;
 using KinematicCharacterController;
 
 // lots of the initial code adapted from ExampleCharacterController in:
@@ -22,6 +23,10 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
         Normal,
         StaticSpline,
     }
+
+    [Header("Configuration")]
+    [Tooltip("Optional: Movement config ScriptableObject. If not assigned, uses local serialized values.")]
+    [SerializeField] private PlayerMovementConfig movementConfig;
 
     [Header("Player")]
     [Tooltip("Move speed of the character on the ground in m/s")]
