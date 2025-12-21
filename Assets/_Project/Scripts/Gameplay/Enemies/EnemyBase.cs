@@ -3,6 +3,8 @@ using UnityEngine.Events;
 using System.Collections.Generic;
 
 using GUP.Core;
+using GUP.Core.Config;
+
 /// <summary>
 /// Base class for all enemies. Integrates with state machine and health system.
 /// Extend this class to create specific enemy types.
@@ -10,6 +12,14 @@ using GUP.Core;
 [RequireComponent(typeof(EnemyStateMachine))]
 public abstract class EnemyBase : MonoBehaviour, IDamageable
 {
+    #region Configuration
+    
+    [Header("Configuration")]
+    [Tooltip("Optional: Enemy config ScriptableObject. If not assigned, uses local serialized values.")]
+    [SerializeField] protected EnemyConfig enemyConfig;
+    
+    #endregion
+
     #region Health Settings
     
     [Header("Health")]
