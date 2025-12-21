@@ -6,6 +6,7 @@ using UnityEngine.Splines;
 
 using GUP.Core;
 using GUP.Core.Config;
+using GUP.Core.Debug;
 using GUP.Core.StateMachine;
 using GUP.Gameplay.Player;
 using GUP.Gameplay.Player.States;
@@ -177,11 +178,17 @@ public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
 
     _currentHealth -= amount;
     
+    // Debug log damage
+    GupDebug.LogDamageTaken(gameObject.name, amount, _currentHealth);
+    
     // Broadcast damage event
     GameEvents.RaiseEntityDamaged(gameObject, DamageData.Simple(amount, hitPoint, hitNormal));
 
     if (_currentHealth <= 0f)
     {
+        // Debug log death
+        GupDebug.LogDeath(gameObject.name, "HP depleted");
+        
         // On death, respawn or reload scene.
         GameEvents.RaiseEntityDied(gameObject);
         RespawnPlayer();
@@ -264,8 +271,6 @@ public void Heal(float amount)
     /// </summary>
     private void RespawnPlayer()
     {
-        Debug.Log("[PlayerController] RespawnPlayer called");
-        
         // Reset health first to prevent re-triggering death
         _currentHealth = maxHealth;
         _isInvulnerable = true; // Temporary invulnerability after respawn
@@ -273,7 +278,6 @@ public void Heal(float amount)
         
         if (CheckpointManager.Instance != null)
         {
-            Debug.Log("[PlayerController] Respawning at checkpoint");
             CheckpointManager.Instance.RespawnPlayer(gameObject);
             
             // Reset velocity
@@ -283,12 +287,15 @@ public void Heal(float amount)
             }
             _externalVelocityAdd = Vector3.zero;
             
+            // Debug log respawn
+            GupDebug.LogRespawn(gameObject.name, transform.position, "Checkpoint");
+            
             // Raise respawn event
             GameEvents.RaisePlayerRespawned(transform.position);
         }
         else
         {
-            Debug.Log("[PlayerController] No CheckpointManager, reloading scene");
+            GupDebug.Log(LogCategory.Respawn, "No CheckpointManager, reloading scene", LogLevel.Warn);
             // Simple behaviour: reload scene
             Scene currentScene = SceneManager.GetActiveScene();
             SceneManager.LoadScene(currentScene.name);
