@@ -1,32 +1,47 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-public static class Options
+namespace GUP.Core
 {
-    public class WatchableValue<T> : UnityEvent<T>
+    /// <summary>
+    /// Static options container with observable values for settings synchronization.
+    /// </summary>
+    public static class Options
     {
-        private T _value;
-        public T Value
+        /// <summary>
+        /// Generic observable value that invokes listeners when changed.
+        /// </summary>
+        /// <typeparam name="T">The type of value to watch.</typeparam>
+        public class WatchableValue<T> : UnityEvent<T>
         {
-            get => _value;
-            set
+            private T _value;
+            
+            /// <summary>Gets or sets the value, invoking listeners on change.</summary>
+            public T Value
             {
-                _value = value;
-                Invoke(_value);
+                get => _value;
+                set
+                {
+                    _value = value;
+                    Invoke(_value);
+                }
             }
+
+            private WatchableValue(T value) => _value = value;
+            public static implicit operator WatchableValue<T>(T value) => new(value);
+            public static implicit operator T(WatchableValue<T> watchablevalue) => watchablevalue.Value;
         }
 
-        private WatchableValue(T value) => _value = value;
-        public static implicit operator WatchableValue<T>(T value) => new(value);
-        public static implicit operator T(WatchableValue<T> watchablevalue) => watchablevalue.Value;
-    }
+        /// <summary>Mouse sensitivity multiplier (default 1.0)</summary>
+        public static readonly WatchableValue<float> mouseSensitivity = 1.0f;
+        
+        /// <summary>Current graphics quality level</summary>
+        public static readonly WatchableValue<int> graphicsQuality = QualitySettings.GetQualityLevel();
 
-    public static readonly WatchableValue<float> mouseSensitivity = 1.0f;
-    public static readonly WatchableValue<int> graphicsQuality = QualitySettings.GetQualityLevel();
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
-    private static void Startup()
-    {
-        graphicsQuality.AddListener(QualitySettings.SetQualityLevel);
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSplashScreen)]
+        private static void Startup()
+        {
+            graphicsQuality.AddListener(QualitySettings.SetQualityLevel);
+        }
     }
 }
