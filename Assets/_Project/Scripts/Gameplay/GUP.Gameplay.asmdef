@@ -2,7 +2,11 @@
     "name": "GUP.Gameplay",
     "rootNamespace": "GUP.Gameplay",
     "references": [
-        "GUP.Core"
+        "GUP.Core",
+        "ThirdParty.KCC",
+        "Unity.InputSystem",
+        "Unity.Splines",
+        "Unity.Cinemachine"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

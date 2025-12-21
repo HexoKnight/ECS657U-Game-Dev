@@ -1,11 +1,7 @@
 {
-    "name": "GUP.UI",
-    "rootNamespace": "GUP.UI",
-    "references": [
-        "GUP.Core",
-        "Unity.TextMeshPro",
-        "Eflatun.SceneReference"
-    ],
+    "name": "ThirdParty.KCC",
+    "rootNamespace": "KinematicCharacterController",
+    "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
