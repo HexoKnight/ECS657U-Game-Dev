@@ -292,9 +292,52 @@ HazardConfig is designed for damage-dealing hazards. If damage hazards are added
 
 ---
 
+## Phase 3D: Hazard Config Migration
+
+### Branch: `refactor/phase3d-hazard-configs`
+### Base: `refactor/phase3-configs`
+
+### HazardConfig Extension
+
+Extended `HazardConfig` with additional fields for non-damage hazards:
+
+**Push Effect (BubbleStream):**
+- `pushForce` - Upward force applied to player
+- `forceRampSpeed` - How quickly force builds up
+- `maxVelocityBoost` - Maximum velocity boost
+
+**Slow Effect (StickyTrash):**
+- `slowFactor` - How much to slow player (0-1)
+- `slowTransitionSpeed` - How quickly slow applies
+- `impairVision` - Enable vision impairment
+
+### Commits
+
+| Commit | Description |
+|--------|-------------|
+| `7357838` | Fix SpikyFishConfig.asset malformed content |
+| `1b3d20a` | Add HazardConfig consumption (fallback preserved) |
+| `06d0c2f` | Add HazardConfig assets for hazard types |
+
+### HazardConfig Assets Created
+
+| Asset | Purpose |
+|-------|---------|
+| `BubbleStreamConfig.asset` | Push effect settings (pushForce=15) |
+| `StickyTrashConfig.asset` | Slow effect settings (slowFactor=0.5) |
+
+---
+
+## Wiring Required (Unity Editor)
+
+### Hazard Prefabs
+1. Select BubbleStream prefab → Assign `BubbleStreamConfig`
+2. Select StickyTrashHazard prefab → Assign `StickyTrashConfig`
+
+---
+
 ## Next Steps
 
 1. **Verify in Unity Editor**: 0 compile errors
-2. **Wire Player prefab**: Assign PlayerMovementConfig
-3. **Wire Enemy prefabs**: Assign EnemyConfig assets
-4. **Play MainScene + EnemiesDemo**: Behavior unchanged
+2. **Wire hazard prefabs**: Assign HazardConfig assets
+3. **Play MainScene + EnemiesDemo**: Behavior unchanged
