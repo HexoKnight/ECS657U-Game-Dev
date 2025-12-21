@@ -439,3 +439,53 @@ Root
 1. **Verify in Unity Editor**: 0 compile errors
 2. **Play MainScene**: Movement identical
 3. **HFSM expansion**: Wire states to PlayerController if deeper integration needed
+
+### Fixes (Step 1235)
+- Removed `where TContext : MonoBehaviour` from Core HFSM to support POCO `PlayerContext`.
+- Implemented `LateExecute` in `IState`, `StateBase`, `CompositeStateBase`, `PlayerState` to fix camera smoothness constraints.
+- Fixed `StateMachineBase` logging to use `GetType().Name` instead of `context.name` to resolve `CS1061`.
+
+### Fixes (Step 1286)
+- Removed legacy `PlayerState.Normal` references and `_playerState` field.
+- Refactored `AfterCharacterUpdate` to delegate to `CurrentState`.
+- Removed invalid `readonly` field assignment in `Awake`.
+- Suppressed `CS0414` warnings in `BubbleStream` and `SupportManta`.
+
+### Fixes (Step 1333)
+- Exposed `TimeSinceJumpRequested` getter in `PlayerController` to fix `FreeControlState` access.
+- Exposed `TimeSinceJumpRequested` getter in `PlayerController` to fix `FreeControlState` access.
+- Removed unused `_jumpedThisFrame` field and assignment to resolve `CS0414`.
+
+### Fixes (Step 1343)
+- Removed lingering usages of `_jumpedThisFrame` in `ResetNormalState` and `UpdateFreeMovement` to resolve `CS0103`.
+
+---
+
+## [Phase 4C Regression Fix] Jump Buffer + Debug Logging
+**Date:** 2025-12-21  
+**Branch:** `fix/phase4c-player-hfsm-regression`
+
+### Problem
+After HFSM migration, jump buffering failed on state transitions (e.g., magnet detach → free control) because timers were stored in `PlayerController` and reset when changing states.
+
+### Solution
+1. **Moved jump timers to `PlayerContext`**: `TimeSinceJumpRequested`, `TimeSinceLastAbleToJump`, `JumpConsumed` now persist across state changes.
+2. **Fixed `AfterCharacterUpdate`**: Coyote timer updates globally (not state-specific).
+3. **Removed timer resets from `ResetNormalState`**: Preserves buffered jumps.
+
+### Debug Logging System
+Added `GupDebug` facade for zero-cost production logging:
+
+**Enabling:**
+1. Define `GUP_DEBUG` scripting symbol in Player Settings → Scripting Define Symbols.
+2. Or create `GupDebugConfig` asset (Assets > Create > GUP > Debug Config) for runtime toggles.
+
+**Categories:** State, Jump, Damage, Magnet, Path, ForceFields, Respawn  
+**Levels:** Error, Warn, Info, Verbose
+
+**Key Events Logged:**
+- State transitions
+- Jump requests/consumed/rejected
+- Damage taken + death
+- Respawn location
+- Path follow start/complete
