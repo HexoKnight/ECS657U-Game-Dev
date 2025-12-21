@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &2398964904693676507
+--- !u!1001 &363012441185823567
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -11,18 +11,10 @@ PrefabInstance:
     - target: {fileID: -8867105634100895049, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 8d0fae7b693d2f186941eee60b2e54d4, type: 2}
-    - target: {fileID: -6134443729818062187, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
-      propertyPath: m_Mesh
-      value: 
-      objectReference: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+      objectReference: {fileID: 2100000, guid: 052e8e4dc7bf560bb977d4d74d5afa6e, type: 2}
     - target: {fileID: 3375677972783629276, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
       propertyPath: m_Name
-      value: MagneticPlatform
-      objectReference: {fileID: 0}
-    - target: {fileID: 3375677972783629276, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
-      propertyPath: m_Layer
-      value: 8
+      value: Rock
       objectReference: {fileID: 0}
     - target: {fileID: 5068368233405570414, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
       propertyPath: m_LocalPosition.x
@@ -64,10 +56,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 5383357259904476141, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
-      propertyPath: m_Mesh
-      value: 
-      objectReference: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
     - target: {fileID: 5383357259904476141, guid: 105a90a04ea24c5f594fe790473f208c, type: 3}
       propertyPath: m_Convex
       value: 1
