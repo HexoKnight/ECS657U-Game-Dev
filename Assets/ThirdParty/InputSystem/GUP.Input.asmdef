@@ -1,13 +1,8 @@
 {
-    "name": "GUP.Gameplay",
-    "rootNamespace": "GUP.Gameplay",
+    "name": "GUP.Input",
+    "rootNamespace": "",
     "references": [
-        "GUP.Core",
-        "GUP.Input",
-        "ThirdParty.KCC",
-        "Unity.InputSystem",
-        "Unity.Splines",
-        "Unity.Cinemachine"
+        "Unity.InputSystem"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

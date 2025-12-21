@@ -3,6 +3,7 @@
     "rootNamespace": "GUP.UI",
     "references": [
         "GUP.Core",
+        "GUP.Input",
         "Unity.TextMeshPro",
         "Eflatun.SceneReference"
     ],
