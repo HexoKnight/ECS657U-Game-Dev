@@ -154,8 +154,44 @@ Fixed nested folder structures created during Phase 1 moves:
 
 ---
 
+## Phase 3A: Structural Cleanup & Ownership Enforcement
+
+### Branch: `refactor/phase3-ownership`
+### Base: `refactor/phase2-production-quality`
+
+### Milestone 1: Settings vs Gameplay Data
+
+| Move | Rationale |
+|------|-----------|
+| `Settings/Config.meta` → `Data/Config.meta` | Config assets for gameplay tunables belong in Data |
+| `Settings/Events.meta` → `Data/Events.meta` | Event channel assets belong in Data |
+
+**Result**: `_Project/Settings` now contains only URP pipeline/renderer assets.
+
+### Milestone 2: Core Ownership Enforcement
+
+Moved gameplay-specific MonoBehaviours out of Core into Gameplay.
+
+| File | From | To | Namespace Change |
+|------|------|----|------------------|
+| `DamageDealer.cs` | Core | Gameplay/Combat | GUP.Core → GUP.Gameplay |
+| `HealthComponent.cs` | Core | Gameplay/Combat | GUP.Core → GUP.Gameplay |
+
+**Files Updated:**
+- `DeadState.cs`: Added `using GUP.Gameplay;`
+
+**Result**: `GUP.Core` now contains only:
+- Interfaces: `IDamageable`, `IState`, `IStateMachine`
+- Data: `DamageData`, `DamageType`, `EntityType`
+- Events: `GameEvents`, Event Channels
+- Config SO Types: `PlayerMovementConfig`, `EnemyConfig`, `HazardConfig`
+- State Machine Base: `StateBase`, `StateMachineBase`
+- Utility: `Options`
+
+---
+
 ## Next Steps
 
-1. **Verify in Unity Editor**: Open project, check for compile errors
-2. **Test each scene**: MainScene, EnemiesDemo
-3. **Create PR**: `refactor/phase2-production-quality` → `refactor/architecture-cleanup`
+1. **Verify in Unity Editor**: 0 compile errors
+2. **Play MainScene + EnemiesDemo**: No exceptions
+3. **Create PR**: `refactor/phase3-ownership` → `refactor/phase2-production-quality`

@@ -1,7 +1,9 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-namespace GUP.Core
+using GUP.Core;
+
+namespace GUP.Gameplay
 {
     /// <summary>
     /// Generic component that deals damage to IDamageable entities on contact.

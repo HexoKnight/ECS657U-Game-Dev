@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace GUP.Core
+using GUP.Core;
+
+namespace GUP.Gameplay
 {
     /// <summary>
     /// Reusable health component that implements IDamageable.
