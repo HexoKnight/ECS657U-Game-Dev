@@ -14,7 +14,9 @@ namespace GUP.Core.Debug
         Magnet,      // Magnetic attach/detach
         Path,        // Path following
         ForceFields, // Force field enter/exit
-        Respawn      // Death and respawn
+        Respawn,     // Death and respawn
+        Enemy,       // Enemy AI state changes, detection, attacks
+        Hazard       // Hazard activation/deactivation
     }
 
     /// <summary>
@@ -220,6 +222,57 @@ namespace GUP.Core.Debug
                 msg += $" | checkpoint={checkpointName}";
             }
             Log(LogCategory.Respawn, msg);
+        }
+
+        // ==================== ENEMY EVENTS ====================
+
+        /// <summary>Log enemy state change.</summary>
+        [Conditional("GUP_DEBUG")]
+        public static void LogEnemyStateChange(string enemyName, string from, string to, string reason = null)
+        {
+            string msg = $"{enemyName}: {from} → {to}";
+            if (!string.IsNullOrEmpty(reason))
+            {
+                msg += $" (reason: {reason})";
+            }
+            Log(LogCategory.Enemy, msg);
+        }
+
+        /// <summary>Log enemy player detection.</summary>
+        [Conditional("GUP_DEBUG")]
+        public static void LogEnemyDetection(string enemyName, bool detected, float distance = -1f)
+        {
+            string status = detected ? "detected player" : "lost player";
+            string msg = $"{enemyName} {status}";
+            if (distance >= 0f)
+            {
+                msg += $" | distance={distance:F1}";
+            }
+            Log(LogCategory.Enemy, msg);
+        }
+
+        /// <summary>Log enemy attack.</summary>
+        [Conditional("GUP_DEBUG")]
+        public static void LogEnemyAttack(string enemyName, string target, float damage)
+        {
+            Log(LogCategory.Enemy, $"{enemyName} attacked {target} for {damage:F1} damage");
+        }
+
+        // ==================== HAZARD EVENTS ====================
+
+        /// <summary>Log hazard activation/deactivation.</summary>
+        [Conditional("GUP_DEBUG")]
+        public static void LogHazardActivation(string hazardName, string playerName, bool entered)
+        {
+            string action = entered ? "entered" : "exited";
+            Log(LogCategory.Hazard, $"{playerName} {action} {hazardName}");
+        }
+
+        /// <summary>Log hazard effect applied.</summary>
+        [Conditional("GUP_DEBUG")]
+        public static void LogHazardEffect(string hazardName, string effect, string target)
+        {
+            Log(LogCategory.Hazard, $"{hazardName} applied {effect} to {target}");
         }
     }
 }

@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+using GUP.Core.Debug;
+
 /// <summary>
 /// Spiky fish that patrols and shoots spines when player approaches.
 /// Inflates before shooting, creating a "mobile turret" behavior.
@@ -125,7 +127,7 @@ public class SpikyFishEnemy : EnemyBase
     {
         if (spinePrefab == null)
         {
-            Debug.LogWarning($"[SpikyFishEnemy] {name} has no spine prefab assigned!");
+            GupDebug.Log(LogCategory.Enemy, $"{name} has no spine prefab assigned!", LogLevel.Warn);
             return;
         }
         
@@ -157,10 +159,7 @@ public class SpikyFishEnemy : EnemyBase
             }
         }
         
-        if (debugStates)
-        {
-            Debug.Log($"[SpikyFishEnemy] {name} shot a spine!");
-        }
+        GupDebug.Log(LogCategory.Enemy, $"{name} shot a spine!");
     }
     
     #endregion

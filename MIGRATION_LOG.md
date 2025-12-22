@@ -489,3 +489,123 @@ Added `GupDebug` facade for zero-cost production logging:
 - Damage taken + death
 - Respawn location
 - Path follow start/complete
+
+---
+
+## Phase 5: Enemies & Hazards Architecture
+**Date:** 2025-12-22  
+**Branch:** `refactor/phase5-enemies-and-hazards`
+
+### Current State and Issues (Pre-Refactor)
+
+The enemy/hazard implementation had several issues:
+1. **Config not consumed**: `EnemyBase.enemyConfig` field existed but values were never read from it
+2. **Debug.Log everywhere**: All enemy/hazard code used raw `Debug.Log` instead of `GupDebug` facade
+3. **Missing GupDebug categories**: No `Enemy` or `Hazard` categories in `LogCategory` enum
+4. **Enemies "fly"**: Movement via `transform.position +=` without grounding (documented limitation)
+
+### Target Architecture (Per Playbook)
+
+- Composable enemy model with sensors, HFSM, movement actuators, effect applicators
+- Data-driven configs via ScriptableObjects
+- Event-channel based interactions
+- Designer-friendly authoring with gizmos and OnValidate
+
+---
+
+### Phase 5A: Core Enemy/Hazard Scaffolding
+
+**Files Created:**
+- `Enemies/EnemyContext.cs` - POCO holding shared references and runtime state
+
+**Files Modified:**
+- `Core/Debug/GupDebug.cs` - Added `Enemy` and `Hazard` categories with helper methods:
+  - `LogEnemyStateChange()`, `LogEnemyDetection()`, `LogEnemyAttack()`
+  - `LogHazardActivation()`, `LogHazardEffect()`
+- `Core/Debug/GupDebugConfig.cs` - Added `enemyEvents` and `hazardEvents` toggles
+- `Core/Config/EnemyConfig.cs` - Extended with missing fields:
+  - `chaseSpeed`, `invulnerabilityTime`, `patrolWaitTime`, `alertDuration`
+  - `attackWindup`, `waypointTolerance`
+- `Enemies/EnemyBase.cs` - Wired all 20+ properties to read from `enemyConfig` with fallback pattern
+
+**Behavior Preserved:** All existing enemy behavior unchanged. Config is optional - existing serialized fields work as fallback.
+
+---
+
+### Phase 5B: Crab/SpikyFish Vertical Slice
+
+**Files Modified:**
+- `Enemies/CrabEnemy.cs` - Replaced `Debug.Log` with `GupDebug`
+- `Enemies/SpikyFishEnemy.cs` - Replaced `Debug.Log` with `GupDebug`
+- `Enemies/StateMachine/EnemyState.cs` - Centralized state transition logging via `GupDebug.LogEnemyStateChange()`
+
+**Behavior Preserved:** No gameplay changes. Logging now uses centralized facade.
+
+**Remaining Limitation:** Enemies still "fly" via `transform.position +=`. Full grounding would require level re-authoring.
+
+---
+
+### Phase 5C: Exploding Fish Refinement
+
+**Files Modified:**
+- `Enemies/ExplodingFishEnemy.cs` - Added GupDebug logging for priming and explosion
+
+**State Machine States:**
+- `IdleState` → waits for player presence (inherited from EnemyBase)
+- `PrimedToExplodeState` → visual warning for `explosionDelay` duration
+- `Explode()` → applies area damage and destroys self
+
+**Behavior Preserved:** Explosion mechanics unchanged. Now reads from config via EnemyBase properties.
+
+---
+
+### Phase 5D: Sticky Trash and Simple Hazards
+
+**Files Modified:**
+- `Hazards/StickyTrashHazard.cs` - Replaced `Debug.Log` with `GupDebug.LogHazardActivation()`
+- `Hazards/BubbleStream.cs` - Replaced `Debug.Log` with `GupDebug.LogHazardActivation()`
+
+**Design Decision:** Hazards remain simple trigger-based implementations (NOT using HFSM) per playbook non-goal.
+
+**Behavior Preserved:** Hazards already used config fallback pattern correctly. No gameplay changes.
+
+---
+
+### Phase 5E: Support Manta
+
+**Files Modified:**
+- `Enemies/SupportManta.cs` - Replaced `Debug.Log` with `GupDebug.Log(LogCategory.Enemy, ...)`
+
+**Behavior Preserved:** Spline-based movement, rider management, and parenting all unchanged.
+
+**Remaining Limitation:** Hard-coded speed values. Future work could add `SupportCreatureConfig` SO.
+
+---
+
+### Debug Logging Consolidation
+
+All enemy/hazard code now uses `GupDebug` facade:
+
+| File | Logging Added |
+|------|---------------|
+| `EnemyBase` | Damage taken, attacks performed |
+| `EnemyState` | State transitions (centralized) |
+| `CrabEnemy` | Spawn, claw snap |
+| `SpikyFishEnemy` | Spine shooting |
+| `ExplodingFishEnemy` | Priming, explosion |
+| `StickyTrashHazard` | Enter/exit |
+| `BubbleStream` | Enter/exit |
+| `SupportManta` | Mount/dismount |
+
+**New GupDebug Categories:** `Enemy`, `Hazard`
+
+---
+
+### Next Steps (Future Work)
+
+1. **DifficultyManager/DDA hooks** - Per playbook, create telemetry system for adaptive difficulty
+2. **BuffableEntity abstraction** - Clean debuff application pattern for hazards
+3. **Enemy grounding** - Add raycasting for ground snapping (requires level re-authoring)
+4. **SupportCreatureConfig SO** - Extract hard-coded manta values to config
+5. **Editor tooling** - One-click enemy prefab setup via `[MenuItem]`
+

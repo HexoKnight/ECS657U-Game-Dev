@@ -1,5 +1,7 @@
 using UnityEngine;
 
+using GUP.Core.Debug;
+
 /// <summary>
 /// Crab enemy with patrol, alert, chase, and melee attack behaviors.
 /// Uses state machine from EnemyBase.
@@ -55,10 +57,7 @@ public class CrabEnemy : EnemyBase
     {
         base.OnSpawn();
         
-        if (debugStates)
-        {
-            Debug.Log($"[CrabEnemy] {name} spawned with {patrolWaypoints.Count} patrol points");
-        }
+        GupDebug.Log(LogCategory.Enemy, $"{name} spawned with {patrolWaypoints.Count} patrol points");
     }
     
     #endregion
@@ -76,10 +75,7 @@ public class CrabEnemy : EnemyBase
         // Call base attack logic
         base.PerformAttack();
         
-        if (debugStates)
-        {
-            Debug.Log($"[CrabEnemy] {name} snapped claws!");
-        }
+        GupDebug.Log(LogCategory.Enemy, $"{name} snapped claws!");
     }
     
     #endregion

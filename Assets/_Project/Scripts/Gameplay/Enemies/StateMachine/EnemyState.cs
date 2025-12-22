@@ -1,6 +1,8 @@
 using UnityEngine;
 
 using GUP.Core;
+using GUP.Core.Debug;
+
 /// <summary>
 /// Abstract base class for all enemy states.
 /// Each state defines behavior for Enter, Execute, Exit, and CheckTransitions.
@@ -13,6 +15,9 @@ public abstract class EnemyState
     
     /// <summary>State name for debugging</summary>
     public abstract string StateName { get; }
+    
+    /// <summary>Previous state name for logging transitions</summary>
+    protected string previousStateName;
 
     public EnemyState(EnemyStateMachine stateMachine, EnemyBase enemy)
     {
@@ -24,10 +29,9 @@ public abstract class EnemyState
     /// <summary>Called when entering this state</summary>
     public virtual void Enter() 
     {
-        if (enemy.DebugStates)
-        {
-            Debug.Log($"[{enemy.name}] Entering state: {StateName}");
-        }
+        // Log state transition via GupDebug
+        string fromState = stateMachine.CurrentState?.StateName ?? "None";
+        GupDebug.LogEnemyStateChange(enemy.name, fromState, StateName);
     }
     
     /// <summary>Called every frame while in this state</summary>
@@ -36,10 +40,7 @@ public abstract class EnemyState
     /// <summary>Called when exiting this state</summary>
     public virtual void Exit() 
     {
-        if (enemy.DebugStates)
-        {
-            Debug.Log($"[{enemy.name}] Exiting state: {StateName}");
-        }
+        // Exit logging handled by Enter of new state
     }
     
     /// <summary>Check and perform state transitions</summary>

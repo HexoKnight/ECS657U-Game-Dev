@@ -1,6 +1,7 @@
 using UnityEngine;
 
 using GUP.Core.Config;
+using GUP.Core.Debug;
 
 /// <summary>
 /// Bubble stream that pushes the player upward when inside.
@@ -139,7 +140,7 @@ public class BubbleStream : MonoBehaviour
             AudioSource.PlayClipAtPoint(enterSound, player.transform.position);
         }
         
-        Debug.Log($"[BubbleStream] {other.name} entered bubble stream");
+        GupDebug.LogHazardActivation("BubbleStream", other.name, true);
     }
     
     private void OnTriggerExit(Collider other)
@@ -152,7 +153,7 @@ public class BubbleStream : MonoBehaviour
         playersInStream.Remove(player);
         playerForceBuildup.Remove(player);
         
-        Debug.Log($"[BubbleStream] {other.name} exited bubble stream");
+        GupDebug.LogHazardActivation("BubbleStream", other.name, false);
     }
     
     #endregion

@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.Splines;
 
+using GUP.Core.Debug;
+
 /// <summary>
 /// Support manta ray that follows a spline path and acts as a moving platform.
 /// Player can ride on top of the manta.
@@ -258,7 +260,7 @@ public class SupportManta : MonoBehaviour
             rider.SetParent(transform);
         }
         
-        Debug.Log($"[SupportManta] {rider.name} is now riding the manta");
+        GupDebug.Log(LogCategory.Enemy, $"{rider.name} is now riding the manta");
     }
     
     private void RemoveRider(Transform rider)
@@ -273,7 +275,7 @@ public class SupportManta : MonoBehaviour
             riderOriginalParents.Remove(rider);
         }
         
-        Debug.Log($"[SupportManta] {rider.name} stopped riding the manta");
+        GupDebug.Log(LogCategory.Enemy, $"{rider.name} stopped riding the manta");
     }
     
     #endregion

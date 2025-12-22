@@ -1,6 +1,7 @@
 using UnityEngine;
 
 using GUP.Core;
+using GUP.Core.Debug;
 /// <summary>
 /// Exploding fish enemy that chases player and detonates when close.
 /// Uses state machine with custom PrimedToExplode state.
@@ -95,6 +96,7 @@ public class ExplodingFishEnemy : EnemyBase
         if (isPrimed) return;
         
         isPrimed = true;
+        GupDebug.Log(LogCategory.Enemy, $"{name} primed - will explode in {explosionDelay}s");
         stateMachine.ChangeState(new PrimedToExplodeState(stateMachine, this));
     }
     
@@ -169,10 +171,8 @@ public class ExplodingFishEnemy : EnemyBase
             Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
         }
         
-        if (debugStates)
-        {
-            Debug.Log($"[ExplodingFishEnemy] {name} exploded!");
-        }
+        // Log explosion via GupDebug
+        GupDebug.Log(LogCategory.Enemy, $"{name} exploded!");
         
         // Destroy self (bypass death state since we're exploding)
         OnDeathEvent?.Invoke();

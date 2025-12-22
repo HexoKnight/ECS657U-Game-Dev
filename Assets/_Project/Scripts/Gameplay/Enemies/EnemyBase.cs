@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 using GUP.Core;
 using GUP.Core.Config;
+using GUP.Core.Debug;
 
 /// <summary>
 /// Base class for all enemies. Integrates with state machine and health system.
@@ -154,32 +155,47 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
 
     #region Properties (for State Access)
     
-    public float MoveSpeed => moveSpeed;
-    public float ChaseSpeed => chaseSpeed;
-    public float RotationSpeed => rotationSpeed;
-    public float AttackDamage => attackDamage;
-    public float KnockbackForce => knockbackForce;
-    public float AttackRange => attackRange;
-    public float AttackCooldown => attackCooldown;
-    public float AttackWindup => attackWindup;
-    public float DetectionRadius => detectionRadius;
-    public float ChaseRadius => chaseRadius;
-    public float LosePlayerTime => losePlayerTime;
+    // Movement - use config if assigned, otherwise fallback to serialized fields
+    public float MoveSpeed => enemyConfig != null ? enemyConfig.moveSpeed : moveSpeed;
+    public float ChaseSpeed => enemyConfig != null ? enemyConfig.chaseSpeed : chaseSpeed;
+    public float RotationSpeed => enemyConfig != null ? enemyConfig.turnSpeed : rotationSpeed;
+    
+    // Combat - use config if assigned, otherwise fallback
+    public float AttackDamage => enemyConfig != null ? enemyConfig.attackDamage : attackDamage;
+    public float KnockbackForce => enemyConfig != null ? enemyConfig.knockbackForce : knockbackForce;
+    public float AttackRange => enemyConfig != null ? enemyConfig.attackRange : attackRange;
+    public float AttackCooldown => enemyConfig != null ? enemyConfig.attackCooldown : attackCooldown;
+    public float AttackWindup => enemyConfig != null ? enemyConfig.attackWindup : attackWindup;
+    
+    // Detection - use config if assigned, otherwise fallback
+    public float DetectionRadius => enemyConfig != null ? enemyConfig.detectionRange : detectionRadius;
+    public float ChaseRadius => enemyConfig != null ? enemyConfig.loseTargetRange : chaseRadius;
+    public float LosePlayerTime => enemyConfig != null ? enemyConfig.forgetTime : losePlayerTime;
+    
+    // Patrol - partially from config
     public bool UsePatrol => usePatrol;
     public List<Transform> PatrolWaypoints => patrolWaypoints;
     public float PatrolRadius => patrolRadius;
-    public float PatrolWaitTime => patrolWaitTime;
-    public float WaypointTolerance => waypointTolerance;
+    public float PatrolWaitTime => enemyConfig != null ? enemyConfig.patrolWaitTime : patrolWaitTime;
+    public float WaypointTolerance => enemyConfig != null ? enemyConfig.waypointTolerance : waypointTolerance;
+    
+    // State machine - use config if assigned, otherwise fallback
     public bool UseAlertState => useAlertState;
-    public float AlertDuration => alertDuration;
+    public float AlertDuration => enemyConfig != null ? enemyConfig.alertDuration : alertDuration;
     public float IdleDuration => idleDuration;
-    public float DeathDuration => deathDuration;
+    public float DeathDuration => enemyConfig != null ? enemyConfig.deathDuration : deathDuration;
     public bool DebugStates => debugStates;
+    
+    // References
     public Vector3 PatrolCenter => patrolCenter;
     public PlayerDetector PlayerDetector => playerDetector;
     /// <summary>Returns animator only if it has a valid RuntimeAnimatorController</summary>
     public Animator Animator => (animator != null && animator.runtimeAnimatorController != null) ? animator : null;
     public EnemyStateMachine StateMachine => stateMachine;
+    
+    // Health - use config if assigned, otherwise fallback
+    protected float MaxHealth => enemyConfig != null ? enemyConfig.maxHealth : maxHealth;
+    protected float InvulnerabilityTime => enemyConfig != null ? enemyConfig.invulnerabilityTime : invulnerabilityTime;
     
     #endregion
 
@@ -207,8 +223,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
     
     protected virtual void Start()
     {
-        // Initialize health
-        currentHealth = maxHealth;
+        // Initialize health using config-aware property
+        currentHealth = MaxHealth;
         isDead = false;
         
         // Store patrol center
@@ -287,10 +303,8 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         target.TakeDamage(damage);
         OnAttackEvent?.Invoke();
         
-        if (debugStates)
-        {
-            Debug.Log($"[{name}] Attacked player for {finalDamage} damage");
-        }
+        // Log attack via GupDebug
+        GupDebug.LogEnemyAttack(name, "Player", finalDamage);
     }
     
     #endregion
@@ -341,17 +355,15 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         OnHitEvent?.Invoke();
         stateMachine.OnTakeDamage(damage);
         
-        // Invulnerability
-        if (invulnerabilityTime > 0f)
+        // Invulnerability - use config-aware property
+        if (InvulnerabilityTime > 0f)
         {
             isInvulnerable = true;
-            invulnerabilityTimer = invulnerabilityTime;
+            invulnerabilityTimer = InvulnerabilityTime;
         }
         
-        if (debugStates)
-        {
-            Debug.Log($"[{name}] Took {damage.Amount} damage. Health: {currentHealth}/{maxHealth}");
-        }
+        // Log damage via GupDebug
+        GupDebug.LogDamageTaken(name, damage.Amount, currentHealth, damage.Source?.name);
         
         // Check for death
         if (currentHealth <= 0f)

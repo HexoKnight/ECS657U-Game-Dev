@@ -2,6 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 using GUP.Core.Config;
+using GUP.Core.Debug;
 
 /// <summary>
 /// Hazard that slows the player and optionally impairs vision when touching sticky trash.
@@ -155,7 +156,7 @@ public class StickyTrashHazard : MonoBehaviour
             audioSource.Play();
         }
         
-        Debug.Log($"[StickyTrashHazard] {other.name} entered sticky trash");
+        GupDebug.LogHazardActivation("StickyTrashHazard", other.name, true);
     }
     
     private void OnTriggerExit(Collider other)
@@ -191,7 +192,7 @@ public class StickyTrashHazard : MonoBehaviour
             }
         }
         
-        Debug.Log($"[StickyTrashHazard] {other.name} exited sticky trash");
+        GupDebug.LogHazardActivation("StickyTrashHazard", other.name, false);
     }
     
     #endregion

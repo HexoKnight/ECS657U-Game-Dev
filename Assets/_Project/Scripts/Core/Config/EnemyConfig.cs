@@ -13,9 +13,15 @@ namespace GUP.Core.Config
         [Tooltip("Maximum health of the enemy")]
         public float maxHealth = 100f;
         
+        [Tooltip("Time invulnerable after taking damage")]
+        public float invulnerabilityTime = 0.2f;
+        
         [Header("Movement")]
-        [Tooltip("Base movement speed")]
+        [Tooltip("Base movement speed during patrol")]
         public float moveSpeed = 3f;
+        
+        [Tooltip("Speed when chasing the player")]
+        public float chaseSpeed = 5f;
         
         [Tooltip("Turn speed in degrees per second")]
         public float turnSpeed = 180f;
@@ -45,6 +51,20 @@ namespace GUP.Core.Config
         
         [Tooltip("Knockback force applied on hit")]
         public float knockbackForce = 8f;
+        
+        [Tooltip("Windup time before attack lands")]
+        public float attackWindup = 0.3f;
+        
+        [Header("Patrol")]
+        [Tooltip("Wait time at each waypoint")]
+        public float patrolWaitTime = 1f;
+        
+        [Tooltip("Distance to consider waypoint reached")]
+        public float waypointTolerance = 0.5f;
+        
+        [Header("State Machine")]
+        [Tooltip("Duration of alert state before chasing")]
+        public float alertDuration = 0.5f;
         
         [Header("Death")]
         [Tooltip("Time before enemy is destroyed after death")]

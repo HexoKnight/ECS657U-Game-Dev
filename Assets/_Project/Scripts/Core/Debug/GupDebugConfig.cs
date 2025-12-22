@@ -25,6 +25,8 @@ namespace GUP.Core.Debug
         public bool pathEvents = true;
         public bool forceFieldEvents = true;
         public bool respawnEvents = true;
+        public bool enemyEvents = true;
+        public bool hazardEvents = true;
 
         /// <summary>
         /// Apply this config to the GupDebug facade.
@@ -42,6 +44,8 @@ namespace GUP.Core.Debug
             SetCategory(LogCategory.Path, pathEvents);
             SetCategory(LogCategory.ForceFields, forceFieldEvents);
             SetCategory(LogCategory.Respawn, respawnEvents);
+            SetCategory(LogCategory.Enemy, enemyEvents);
+            SetCategory(LogCategory.Hazard, hazardEvents);
         }
 
         private void SetCategory(LogCategory category, bool enabled)
