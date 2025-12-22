@@ -3,6 +3,15 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class TreasureCollectible : MonoBehaviour
 {
+    [Header("Base Model")]
+    public GameObject baseModel;
+    [Tooltip("Adjust the Initial Model Rotation")]
+    public Vector3 modelRotation = new Vector3();
+    [Tooltip("Adjust the Initial Model Scale")]
+    public float modelScale = 1f;
+    public Color lightColor = Color.white;
+    public float lightIntensity = 10;
+
     [Header("Pickup")]
     public int value = 1;
     public AudioClip pickupSound;
@@ -22,6 +31,19 @@ public class TreasureCollectible : MonoBehaviour
         _startPos = transform.localPosition;
         var col = GetComponent<Collider>();
         col.isTrigger = true;
+
+        // add the model instead of the white sphere
+        if (baseModel == null) {
+            GetComponent<MeshRenderer>().enabled = true;
+        }
+        else {
+            GetComponent<MeshRenderer>().enabled = false;
+            GetComponent<Light>().color = lightColor;
+            GetComponent<Light>().intensity = lightIntensity;
+            baseModel.transform.localScale = Vector3.one * modelScale;
+            baseModel.transform.localRotation = Quaternion.Euler(modelRotation);
+            Instantiate(baseModel, transform);
+        }
     }
 
     void Update()
