@@ -363,7 +363,7 @@ public abstract class EnemyBase : MonoBehaviour, IDamageable
         }
         
         // Log damage via GupDebug
-        GupDebug.LogDamageTaken(name, damage.Amount, currentHealth, damage.Source?.name);
+        GupDebug.LogDamageTaken(name, damage.Amount, currentHealth, damage.Attacker?.name);
         
         // Check for death
         if (currentHealth <= 0f)
