@@ -74,29 +74,8 @@ public class PlayerInputs : MonoBehaviour
 
 		Time.timeScale = paused ? 0 : 1;
 
-		// Show/hide pause menu - using name search to avoid circular assembly dependency
-		if (wasPaused != paused) 
-		{
-			// Find the PauseMenu Canvas by name to avoid direct type reference
-			var pauseMenuGO = GameObject.Find("PauseMenuCanvas");
-			if (pauseMenuGO == null)
-			{
-				// Try inactive objects
-				var allCanvases = Resources.FindObjectsOfTypeAll<Canvas>();
-				foreach (var canvas in allCanvases)
-				{
-					if (canvas.gameObject.name == "PauseMenuCanvas")
-					{
-						pauseMenuGO = canvas.gameObject;
-						break;
-					}
-				}
-			}
-			if (pauseMenuGO != null)
-			{
-				pauseMenuGO.SetActive(paused);
-			}
-		}
+		// TODO: improve
+		if (wasPaused != paused) FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).gameObject.SetActive(paused);
 	}
 
 	private void Start()
