@@ -6,6 +6,9 @@ using UnityEngine.Splines;
 
 using KinematicCharacterController;
 
+using GUP.Core;
+using GUP.Core.Debug;
+
 // lots of the initial code adapted from ExampleCharacterController in:
 // https://assetstore.unity.com/packages/tools/physics/kinematic-character-controller-99131
 
@@ -14,7 +17,7 @@ public delegate bool CalcForceField(Vector3 position, Vector3 velocity, out Vect
 [RequireComponent(typeof(KinematicCharacterMotor))]
 [RequireComponent(typeof(PlayerInput))]
 [RequireComponent(typeof(PlayerInputs))]
-public class PlayerController : MonoBehaviour, ICharacterController
+public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
 {
     enum PlayerState
     {
@@ -56,6 +59,13 @@ public class PlayerController : MonoBehaviour, ICharacterController
     [Tooltip("If the character can jump while they are sliding down a steep slope")]
     public bool allowJumpingWhenSliding = true;
 
+    [Header("Health")]
+    [Tooltip("Maximum health of the player")]
+    public float maxHealth = 3f;
+
+    [Tooltip("Time in seconds during which the player is invulnerable after taking damage")]
+    public float invulnerabilityTime = 0.5f;
+
     [Header("Cinemachine")]
     [Tooltip("The follow target set in the Cinemachine Virtual Camera that the camera will follow")]
     public Transform cinemachineCameraTarget;
@@ -74,6 +84,11 @@ public class PlayerController : MonoBehaviour, ICharacterController
 
     [Header("Internal")]
 
+    // current health
+    private float _currentHealth;
+    private bool _isInvulnerable = false;
+    private float _invulnerabilityTimer = 0;
+
     // cinemachine
     private float _cinemachineTargetPitch;
 
@@ -91,6 +106,10 @@ public class PlayerController : MonoBehaviour, ICharacterController
     private System.Action _pathFinishCallback;
     private float _pathSpeed;
     private float _distanceAlongPath;
+
+    // external velocity used for knockback / pushes
+    private Vector3 _externalVelocityAdd = Vector3.zero;
+
 
     private readonly HashSet<CalcForceField> _forceFields = new();
 
@@ -131,6 +150,149 @@ public class PlayerController : MonoBehaviour, ICharacterController
         _forceFields.Remove(forceField);
     }
 
+    // ------------- HEALTH / DAMAGE API -------------
+    /// <summary>
+    /// Entity type for cross-assembly identification.
+    /// </summary>
+    public EntityType EntityType => EntityType.Player;
+
+    /// <summary>
+    /// Implementation of IDamageable. Enemies/hazards should call this to damage the player.
+    /// </summary>
+    public void TakeDamage(float amount, Vector3 hitPoint, Vector3 hitNormal)
+    {
+        if (amount <= 0f)
+            return;
+
+        if (_isInvulnerable)
+            return;
+
+        _currentHealth -= amount;
+
+        // Debug log damage
+        GupDebug.LogDamageTaken(gameObject.name, amount, _currentHealth);
+
+        // Broadcast damage event
+        GameEvents.RaiseEntityDamaged(gameObject, DamageData.Simple(amount, hitPoint, hitNormal));
+
+        if (_currentHealth <= 0f)
+        {
+            // Debug log death
+            GupDebug.LogDeath(gameObject.name, "HP depleted");
+
+            // On death, respawn or reload scene.
+            GameEvents.RaiseEntityDied(gameObject);
+            RespawnPlayer();
+        }
+        else
+        {
+            // Temporary invulnerability window
+            _isInvulnerable = true;
+            _invulnerabilityTimer = invulnerabilityTime;
+
+            // Simple knockback away from the hit point / normal
+            Vector3 knockbackDir = (transform.position - hitPoint).normalized;
+            if (knockbackDir.sqrMagnitude < 0.01f)
+            {
+                // fallback if hitPoint == player position
+                knockbackDir = -hitNormal.normalized;
+            }
+
+            float knockbackStrength = 8f;
+            AddVelocity(knockbackDir * knockbackStrength);
+        }
+    }
+
+    /// <summary>
+    /// Implementation of IDamageable with DamageData struct.
+    /// </summary>
+    public void TakeDamage(DamageData damage)
+    {
+        TakeDamage(damage.Amount, damage.HitPoint, damage.HitNormal);
+
+        // Apply knockback from DamageData if specified
+        if (damage.KnockbackForce > 0f)
+        {
+            Vector3 knockbackDir = (transform.position - damage.HitPoint).normalized;
+            if (knockbackDir.sqrMagnitude < 0.01f)
+            {
+                knockbackDir = -damage.HitNormal.normalized;
+            }
+            AddVelocity(knockbackDir * damage.KnockbackForce);
+        }
+    }
+
+    /// <summary>
+    /// Get current health value.
+    /// </summary>
+    public float GetCurrentHealth() => _currentHealth;
+
+    /// <summary>
+    /// Get maximum health value.
+    /// </summary>
+    public float GetMaxHealth() => maxHealth;
+
+    /// <summary>
+    /// Check if player is dead (health <= 0).
+    /// </summary>
+    public bool IsDead() => _currentHealth <= 0f;
+
+    /// <summary>
+    /// Heal the player by the specified amount.
+    /// </summary>
+    public void Heal(float amount)
+    {
+        if (amount <= 0f) return;
+        _currentHealth = Mathf.Min(_currentHealth + amount, maxHealth);
+    }
+
+    /// <summary>
+    /// Allows external systems (enemies, currents, etc.) to add an instantaneous velocity,
+    /// e.g. for knockback after damage.
+    /// </summary>
+    public void AddVelocity(Vector3 velocity)
+    {
+        _externalVelocityAdd += velocity;
+    }
+
+    /// <summary>
+    /// Respawn or restart the level.
+    /// For now, this simply reloads the current scene.
+    /// Later this can be wired to CheckpointManager if needed.
+    /// </summary>
+    private void RespawnPlayer()
+    {
+        // Reset health first to prevent re-triggering death
+        _currentHealth = maxHealth;
+        _isInvulnerable = true; // Temporary invulnerability after respawn
+        _invulnerabilityTimer = 2f; // 2 seconds of invulnerability
+
+        if (CheckpointManager.Instance != null)
+        {
+            CheckpointManager.Instance.RespawnPlayer(gameObject);
+
+            // Reset velocity
+            if (_motor != null)
+            {
+                _motor.BaseVelocity = Vector3.zero;
+            }
+            _externalVelocityAdd = Vector3.zero;
+
+            // Debug log respawn
+            GupDebug.LogRespawn(gameObject.name, transform.position, "Checkpoint");
+
+            // Raise respawn event
+            GameEvents.RaisePlayerRespawned(transform.position);
+        }
+        else
+        {
+            GupDebug.Log(LogCategory.Respawn, "No CheckpointManager, reloading scene", LogLevel.Warn);
+            // Simple behaviour: reload scene
+            Scene currentScene = SceneManager.GetActiveScene();
+            SceneManager.LoadScene(currentScene.name);
+        }
+    }
+
     // INTERNAL
 
     private void Awake()
@@ -140,6 +302,22 @@ public class PlayerController : MonoBehaviour, ICharacterController
         _playerInput = GetComponent<PlayerInput>();
 
         _motor.CharacterController = this;
+
+        _currentHealth = maxHealth;
+    }
+
+    private void Update()
+    {
+        // update invulnerability timer
+        if (_isInvulnerable)
+        {
+            _invulnerabilityTimer -= Time.deltaTime;
+            if (_invulnerabilityTimer <= 0f)
+            {
+                _isInvulnerable = false;
+                _invulnerabilityTimer = 0f;
+            }
+        }
     }
 
     private void FixedUpdate()
@@ -354,12 +532,12 @@ public class PlayerController : MonoBehaviour, ICharacterController
                     }
                 }
 
-                // // Take into account additive velocity
-                // if (_internalVelocityAdd.sqrMagnitude > 0f)
-                // {
-                //     currentVelocity += _internalVelocityAdd;
-                //     _internalVelocityAdd = Vector3.zero;
-                // }
+                // Apply external velocity (knockback, pushes, etc.)
+                if (_externalVelocityAdd.sqrMagnitude > 0f)
+                {
+                    currentVelocity += _externalVelocityAdd;
+                    _externalVelocityAdd = Vector3.zero;
+                }
 
                 break;
             case PlayerState.StaticSpline:
@@ -404,29 +582,6 @@ public class PlayerController : MonoBehaviour, ICharacterController
                         _timeSinceLastAbleToJump += deltaTime;
                     }
                 }
-
-                // Handle uncrouching
-                // if (_isCrouching && !_shouldBeCrouching)
-                // {
-                //     // Do an overlap test with the character's standing height to see if there are any obstructions
-                //     _motor.SetCapsuleDimensions(0.5f, 2f, 1f);
-                //     if (_motor.CharacterOverlap(
-                //         _motor.TransientPosition,
-                //         _motor.TransientRotation,
-                //         _probedColliders,
-                //         _motor.CollidableLayers,
-                //         QueryTriggerInteraction.Ignore) > 0)
-                //     {
-                //         // If obstructions, just stick to crouching dimensions
-                //         _motor.SetCapsuleDimensions(0.5f, CrouchedCapsuleHeight, CrouchedCapsuleHeight * 0.5f);
-                //     }
-                //     else
-                //     {
-                //         // If no obstructions, uncrouch
-                //         MeshRoot.localScale = new Vector3(1f, 1f, 1f);
-                //         _isCrouching = false;
-                //     }
-                // }
 
                 break;
         }

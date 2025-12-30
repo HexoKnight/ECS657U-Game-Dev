@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 
+using GUP.Core;
 public class OptionsMenu : MonoBehaviour
 {
     [Tooltip("GameObject to make active when 'Back' is pressed")]
