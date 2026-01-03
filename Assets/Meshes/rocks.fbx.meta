@@ -59,12 +59,12 @@ ModelImporter:
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
-    secondaryUVAreaDistortion: 15.000001
-    secondaryUVHardAngle: 88
+    secondaryUVAreaDistortion: 15
+    secondaryUVHardAngle: 70
     secondaryUVMarginMethod: 1
-    secondaryUVMinLightmapResolution: 40
-    secondaryUVMinObjectScale: 1
-    secondaryUVPackMargin: 4
+    secondaryUVMinLightmapResolution: 2
+    secondaryUVMinObjectScale: 0.05
+    secondaryUVPackMargin: 64
     useFileScale: 0
     strictVertexDataChecks: 0
   tangentSpace:
