@@ -13,6 +13,15 @@ public class PauseMenu : MonoBehaviour
     public void Resume()
     {
         // TODO: improve
+        AudioSource[] audioSources = FindObjectsOfType<AudioSource>();
+
+        foreach (AudioSource source in audioSources)
+        {
+            if (!source.isPlaying)
+            {
+                source.UnPause();
+            }
+		}
         FindFirstObjectByType<PlayerInputs>(FindObjectsInactive.Include).SetPaused(false);
     }
 

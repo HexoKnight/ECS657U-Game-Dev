@@ -74,8 +74,20 @@ public class PlayerInputs : MonoBehaviour
 
 		Time.timeScale = paused ? 0 : 1;
 
+
 		// TODO: improve
 		if (wasPaused != paused) FindFirstObjectByType<PauseMenu>(FindObjectsInactive.Include).gameObject.SetActive(paused);
+        if (paused == true) {
+			AudioSource[] audioSources = FindObjectsOfType<AudioSource>();
+
+			foreach (AudioSource source in audioSources)
+			{
+				if (source.isPlaying)
+				{
+					source.Pause();
+				}
+			}
+		}
 	}
 
 	private void Start()
