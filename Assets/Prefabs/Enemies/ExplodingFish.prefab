@@ -1,0 +1,162 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1652277858397320259
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 986738004463519108}
+  - component: {fileID: 7747470105939314088}
+  - component: {fileID: 263794750277544855}
+  m_Layer: 0
+  m_Name: ExplodingFish
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &986738004463519108
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1652277858397320259}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8668495770056974919}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7747470105939314088
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1652277858397320259}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5506f3f4576d1a428306c2e61f7b169, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &263794750277544855
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1652277858397320259}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac4e8137826c5fe4384c54ac37a49ec6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  enemyConfig: {fileID: 0}
+  maxHealth: 10
+  invulnerabilityTime: 0.2
+  moveSpeed: 3
+  chaseSpeed: 5
+  rotationSpeed: 5
+  attackDamage: 1
+  knockbackForce: 10
+  attackRange: 2
+  attackCooldown: 1.5
+  attackWindup: 0.3
+  detectionRadius: 8
+  chaseRadius: 12
+  losePlayerTime: 3
+  usePatrol: 0
+  patrolWaypoints: []
+  patrolRadius: 5
+  patrolWaitTime: 1
+  waypointTolerance: 0.5
+  useAlertState: 0
+  alertDuration: 0.5
+  idleDuration: 2
+  deathDuration: 2
+  debugStates: 0
+  OnDeathEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnHitEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  OnAttackEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  explosionTriggerRadius: 2
+  explosionDamageRadius: 5
+  explosionDelay: 1.5
+  explosionDamageMultiplier: 5
+  explosionEffectPrefab: {fileID: 0}
+  warningColor: {r: 1, g: 0, b: 0, a: 1}
+  flashSpeed: 10
+--- !u!1001 &9207072347558086060
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 986738004463519108}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: -90
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+      propertyPath: m_Name
+      value: exploding_fish
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+--- !u!4 &8668495770056974919 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: fadcd0e2a388538438d8a72b21fc1005, type: 3}
+  m_PrefabInstance: {fileID: 9207072347558086060}
+  m_PrefabAsset: {fileID: 0}
