@@ -1,6 +1,6 @@
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Eflatun.SceneReference;
+using System.Collections;
 
 public class StartMenu : MonoBehaviour
 {
@@ -10,38 +10,51 @@ public class StartMenu : MonoBehaviour
     [Tooltip("GameObject to make active when 'Options' is pressed")]
     public GameObject optionsObject;
 
-    private AsyncOperation _sceneLoadOperation;
+    [Tooltip("ScreenFader in current scene")]
+    public ScreenFader screenFader;
 
-    // was the scene loaded the last time we checked
-    private bool _wasSceneLoaded = false;
+    [Tooltip("Screen fade colour")]
+    public Color fadeColour = Color.black;
+    [Tooltip("Screen fade duration")]
+    [Min(0)] public float fadeDuration = 1f;
 
-    // stops at 90% if `allowSceneActivation` == false:
-    // https://docs.unity3d.com/2023.1/Documentation/ScriptReference/AsyncOperation-progress.html
-    private bool IsSceneLoaded => _sceneLoadOperation.progress >= 0.9f;
+    private SceneLoader.StartSceneActivation _startSceneActivation;
+
+    private bool _sceneLoaded = false;
+    private bool _startPressed = false;
 
     void Start()
     {
-        _sceneLoadOperation = SceneManager.LoadSceneAsync(loadScene.BuildIndex);
-        _sceneLoadOperation.allowSceneActivation = false;
+        IEnumerator coroutine;
+        (coroutine, _startSceneActivation) =
+            SceneLoader.LoadScene(
+                loadScene,
+                null,
+                startSceneActivation =>
+                {
+                    _sceneLoaded = true;
+                    if (_startPressed)
+                        FadeAndActivateScene();
+                    else
+                        Debug.Log("scene loading finished in the background!");
+                }
+            );
+
+        StartCoroutine(coroutine);
     }
 
-    void Update()
+    private void FadeAndActivateScene()
     {
-        if (!_wasSceneLoaded && IsSceneLoaded)
-        {
-            Debug.Log("scene loading finished in the background!");
-            _wasSceneLoaded = true;
-        }
+        screenFader.FadeScreen(fadeColour, fadeDuration, () => _startSceneActivation());
     }
 
     public void StartGame()
     {
-        _sceneLoadOperation.allowSceneActivation = true;
-        // TODO: maybe fading
-        if (!IsSceneLoaded)
-        {
-            // loading bar...
-        }
+        if (_startPressed) return;
+
+        _startPressed = true;
+
+        if (_sceneLoaded) FadeAndActivateScene();
     }
 
     public void OpenOptions()
