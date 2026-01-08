@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 141893640004864504, guid: 17a711142637f0a2393e406582f1da23, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 7715327524839156940, guid: e742fbc308d7d176993c6e8d65151e5b, type: 3}
     - target: {fileID: 3157442113097738387, guid: 17a711142637f0a2393e406582f1da23, type: 3}
       propertyPath: m_Name
       value: Rock3
