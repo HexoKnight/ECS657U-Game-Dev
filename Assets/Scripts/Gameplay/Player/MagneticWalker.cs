@@ -7,6 +7,7 @@ public class MagnetWalker : MonoBehaviour
     public LayerMask magneticLayers;
     public string magneticTag = "";
     public bool useToggle = true;
+    public AudioClip attachAudio;
 
     [Header("Robust surface detection")]
     public float detectRadius = 2.5f;
@@ -81,6 +82,8 @@ public class MagnetWalker : MonoBehaviour
             { if (debugLogging) Debug.Log("[MagnetWalker] Tag mismatch."); return; }
 
             _playerController.targetUp = hit.normal;
+
+            AudioSource.PlayClipAtPoint(attachAudio,transform.position);
 
             _lostTimer = 0f;
             _magnetActive = true;

@@ -211,9 +211,17 @@ MonoBehaviour:
   useGravity: 1
   deadZone: -15
   allowJumpingWhenSliding: 1
+  maxHealth: 3
+  invulnerabilityTime: 0.5
   cinemachineCameraTarget: {fileID: 122406705304090264}
   topClamp: 90
   bottomClamp: -90
+  walkSoundInterval: 0.6
+  sprintSoundInterval: 0.3
+  walkSound: {fileID: 8300000, guid: 7a5b9227dc00bc441a32bc298a9a1a2b, type: 3}
+  jumpSound: {fileID: 8300000, guid: 02ae5006db8c56047bb0941eb383753c, type: 3}
+  enterWaterCurrentSound: {fileID: 8300000, guid: 796c2241665c8b94db7eba1e76f7106f, type: 3}
+  waterCurrentSound: {fileID: 8300000, guid: 0296a404629d67542bb090c2c6435056, type: 3}
   targetUp: {x: 0, y: 1, z: 0}
   alignUpSpeed: 12
 --- !u!114 &7446226978208146898
@@ -252,6 +260,7 @@ MonoBehaviour:
     m_Bits: 256
   magneticTag: 
   useToggle: 1
+  attachAudio: {fileID: 8300000, guid: cb1db0c54359a604682c4e48d8087b06, type: 3}
   detectRadius: 3.5
   probeRadius: 0.35
   queriesHitBackfaces: 1
