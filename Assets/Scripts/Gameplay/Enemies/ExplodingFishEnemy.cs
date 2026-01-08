@@ -35,6 +35,11 @@ public class ExplodingFishEnemy : EnemyBase
     [Tooltip("Flash speed when primed")]
     [SerializeField] private float flashSpeed = 10f;
 
+    [Header("Explosion Sounds")]
+    [Tooltip("Audio to play on explosion")]
+    [SerializeField] private AudioClip explosionSound;
+
+
     #endregion
 
     #region Private State
@@ -169,6 +174,11 @@ public class ExplodingFishEnemy : EnemyBase
         if (explosionEffectPrefab != null)
         {
             Instantiate(explosionEffectPrefab, transform.position, Quaternion.identity);
+        }
+
+        if (explosionSound != null)
+        {
+            AudioSource.PlayClipAtPoint(explosionSound, transform.position);
         }
 
         if (debugStates)
