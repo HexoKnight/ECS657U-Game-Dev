@@ -12,29 +12,7 @@ using GUP.Core.Debug;
 // lots of the initial code adapted from ExampleCharacterController in:
 // https://assetstore.unity.com/packages/tools/physics/kinematic-character-controller-99131
 
-public class ForceField
-{
-    public delegate bool Calc(PlayerController pc, Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime);
-    public Calc calc;
-
-    public delegate void OnActive(PlayerController pc);
-    public OnActive onActive;
-    public delegate void OnInactive(PlayerController pc);
-    public OnInactive onInactive;
-
-    private bool active = false;
-
-    public void SetActive(PlayerController pc, bool active)
-    {
-        if (this.active != active)
-        {
-            if (active) onActive(pc);
-            else onInactive(pc);
-
-            this.active = active;
-        }
-    }
-}
+public delegate bool CalcForceField(Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime);
 
 [RequireComponent(typeof(KinematicCharacterMotor))]
 [RequireComponent(typeof(PlayerInput))]
@@ -98,11 +76,21 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
     [Range(-90, 0)]
     public float bottomClamp = -90.0f;
 
+    [Header("Audio")]
+    public float walkSoundInterval = 0.6f;
+    public float sprintSoundInterval = 0.3f;
+    
+    public AudioClip walkSound;
+    public AudioClip jumpSound;
+    public AudioClip enterWaterCurrentSound;
+    public AudioClip waterCurrentSound;
+    
     [Header("Other")]
     [Tooltip("The world space up vector the player is currently trying to achieve")]
     public Vector3 targetUp = Vector3.up;
     [Tooltip("The speed at which the player aligns to the target up")]
     public float alignUpSpeed = 12f;
+    
 
     [Header("Internal")]
 
@@ -110,6 +98,8 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
     private float _currentHealth;
     private bool _isInvulnerable = false;
     private float _invulnerabilityTimer = 0;
+
+    private float _currentWalkInterval;
 
     // cinemachine
     private float _cinemachineTargetPitch;
@@ -133,7 +123,7 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
     private Vector3 _externalVelocityAdd = Vector3.zero;
 
 
-    private readonly HashSet<ForceField> _forceFields = new();
+    private readonly HashSet<CalcForceField> _forceFields = new();
 
     // components
     private KinematicCharacterMotor _motor;
@@ -162,12 +152,12 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
         _playerState = PlayerState.Normal;
     }
 
-    public void EnterForceFieldRange(ForceField forceField)
+    public void EnterForceFieldRange(CalcForceField forceField)
     {
         _forceFields.Add(forceField);
     }
 
-    public void ExitForceFieldRange(ForceField forceField)
+    public void ExitForceFieldRange(CalcForceField forceField)
     {
         _forceFields.Remove(forceField);
     }
@@ -315,6 +305,18 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
         }
     }
 
+    void PlayWalkingSound() {
+        if (_motor.GroundingStatus.IsStableOnGround && _input.move != Vector2.zero){
+
+            float temp = _input.sprint ? sprintSoundInterval : walkSoundInterval;
+            if (_currentWalkInterval > temp){
+                _currentWalkInterval = 0f;
+                AudioSource.PlayClipAtPoint(walkSound, transform.position);
+            }
+        }    
+        _currentWalkInterval += Time.deltaTime;
+    }
+
     // INTERNAL
 
     private void Awake()
@@ -340,6 +342,7 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
                 _invulnerabilityTimer = 0f;
             }
         }
+        PlayWalkingSound();
     }
 
     private void FixedUpdate()
@@ -439,10 +442,9 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
             case PlayerState.Normal:
                 bool anyForceFieldActive = false;
                 Vector3 totalForce = Vector3.zero;
-                foreach (ForceField forceField in _forceFields)
+                foreach (CalcForceField calcForceField in _forceFields)
                 {
-                    bool forceFieldActive = forceField.calc(this, _motor.InitialSimulationPosition, currentVelocity, out Vector3 force, deltaTime);
-                    forceField.SetActive(this, forceFieldActive);
+                    bool forceFieldActive = calcForceField(_motor.InitialSimulationPosition, currentVelocity, out Vector3 force, deltaTime);
                     if (forceFieldActive)
                     {
                         anyForceFieldActive = true;
@@ -545,6 +547,8 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
                         // Makes the character skip ground probing/snapping on its next update.
                         // If this line weren't here, the character would remain snapped to the ground when trying to jump. Try commenting this line out and see.
                         _motor.ForceUnground();
+
+                        AudioSource.PlayClipAtPoint(jumpSound, transform.position);
 
                         // Add to the return velocity and reset jump state
                         currentVelocity += (jumpDirection * jumpForce) - Vector3.Project(currentVelocity, _motor.CharacterUp);
