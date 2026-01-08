@@ -95,9 +95,10 @@ MonoBehaviour:
   explosionDamageRadius: 5
   explosionDelay: 1.5
   explosionDamageMultiplier: 5
-  explosionEffectPrefab: {fileID: 0}
+  explosionEffectPrefab: {fileID: 6092131422669964770, guid: 2cc1cc2d37fc1f34fbc5532762891cc7, type: 3}
   warningColor: {r: 1, g: 0, b: 0, a: 1}
   flashSpeed: 10
+  explosionSound: {fileID: 8300000, guid: 8fd049c1f3b669e4f838f559b62088ab, type: 3}
 --- !u!1001 &9207072347558086060
 PrefabInstance:
   m_ObjectHideFlags: 0
