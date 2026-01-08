@@ -12,7 +12,29 @@ using GUP.Core.Debug;
 // lots of the initial code adapted from ExampleCharacterController in:
 // https://assetstore.unity.com/packages/tools/physics/kinematic-character-controller-99131
 
-public delegate bool CalcForceField(Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime);
+public class ForceField
+{
+    public delegate bool Calc(PlayerController pc, Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime);
+    public Calc calc;
+
+    public delegate void OnActive(PlayerController pc);
+    public OnActive onActive;
+    public delegate void OnInactive(PlayerController pc);
+    public OnInactive onInactive;
+
+    private bool active = false;
+
+    public void SetActive(PlayerController pc, bool active)
+    {
+        if (this.active != active)
+        {
+            if (active) onActive(pc);
+            else onInactive(pc);
+
+            this.active = active;
+        }
+    }
+}
 
 [RequireComponent(typeof(KinematicCharacterMotor))]
 [RequireComponent(typeof(PlayerInput))]
@@ -111,7 +133,7 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
     private Vector3 _externalVelocityAdd = Vector3.zero;
 
 
-    private readonly HashSet<CalcForceField> _forceFields = new();
+    private readonly HashSet<ForceField> _forceFields = new();
 
     // components
     private KinematicCharacterMotor _motor;
@@ -140,12 +162,12 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
         _playerState = PlayerState.Normal;
     }
 
-    public void EnterForceFieldRange(CalcForceField forceField)
+    public void EnterForceFieldRange(ForceField forceField)
     {
         _forceFields.Add(forceField);
     }
 
-    public void ExitForceFieldRange(CalcForceField forceField)
+    public void ExitForceFieldRange(ForceField forceField)
     {
         _forceFields.Remove(forceField);
     }
@@ -417,9 +439,10 @@ public class PlayerController : MonoBehaviour, ICharacterController, IDamageable
             case PlayerState.Normal:
                 bool anyForceFieldActive = false;
                 Vector3 totalForce = Vector3.zero;
-                foreach (CalcForceField calcForceField in _forceFields)
+                foreach (ForceField forceField in _forceFields)
                 {
-                    bool forceFieldActive = calcForceField(_motor.InitialSimulationPosition, currentVelocity, out Vector3 force, deltaTime);
+                    bool forceFieldActive = forceField.calc(this, _motor.InitialSimulationPosition, currentVelocity, out Vector3 force, deltaTime);
+                    forceField.SetActive(this, forceFieldActive);
                     if (forceFieldActive)
                     {
                         anyForceFieldActive = true;

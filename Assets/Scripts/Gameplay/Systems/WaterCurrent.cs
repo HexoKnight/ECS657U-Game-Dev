@@ -15,7 +15,7 @@ public class WaterCurrent : MonoBehaviour
     [Tooltip("Whether to apply a centripetal force to prevent being flung out on corners")]
     public bool applyCentripetalForce = true;
 
-    private CalcForceField _calcForceField;
+    private ForceField _forceField;
 
     // components
     private SplineContainer _splineContainer;
@@ -38,57 +38,67 @@ public class WaterCurrent : MonoBehaviour
     {
         _splineContainer = GetComponent<SplineContainer>();
 
-        _calcForceField = delegate (Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime)
+        _forceField = new ForceField
         {
-            Vector3 localPosition = _splineContainer.transform.InverseTransformPoint(position);
-            Vector3 localVelocity = _splineContainer.transform.InverseTransformVector(velocity);
-
-            float distance = SplineUtility.GetNearestPoint(
-                _splineContainer.Spline,
-                localPosition,
-                out Unity.Mathematics.float3 nearest,
-                out float t,
-                // each is double the default value
-                resolution: 8,
-                iterations: 4
-            );
-
-            // actual 'collider' is a essentially a curvy cylinder
-            // ignore the last 0.01 because the evaluations become inaccurate
-            if (distance > radius || t <= 0 || t >= 0.99f)
+            calc = delegate (PlayerController pc, Vector3 position, Vector3 velocity, out Vector3 force, float deltaTime)
             {
-                force = Vector3.zero;
-                return false;
-            }
+                Vector3 localPosition = _splineContainer.transform.InverseTransformPoint(position);
+                Vector3 localVelocity = _splineContainer.transform.InverseTransformVector(velocity);
 
-            // push forward
-            Vector3 forwardDirection = ((Vector3)_splineContainer.Spline.EvaluateTangent(t)).normalized;
-            float forwardMagnitude = forwardForce;
+                float distance = SplineUtility.GetNearestPoint(
+                    _splineContainer.Spline,
+                    localPosition,
+                    out Unity.Mathematics.float3 nearest,
+                    out float t,
+                    // each is double the default value
+                    resolution: 8,
+                    iterations: 4
+                );
 
-            // keep inside current
-            Vector3 inwardsDirection = ((Vector3)nearest - localPosition).normalized;
-            float inwardsMagnitude = constantInForce + squareDistanceInForce * distance * distance;
+                // actual 'collider' is a essentially a curvy cylinder
+                // ignore the last 0.01 because the evaluations become inaccurate
+                if (distance > radius || t <= 0 || t >= 0.99f)
+                {
+                    force = Vector3.zero;
+                    return false;
+                }
 
-            // help prevent being flung out on sharp corners
-            Vector3 centripetalDirection = Vector3.zero;
-            float centripetalForce = 0;
-            if (applyCentripetalForce)
+                // push forward
+                Vector3 forwardDirection = ((Vector3)_splineContainer.Spline.EvaluateTangent(t)).normalized;
+                float forwardMagnitude = forwardForce;
+
+                // keep inside current
+                Vector3 inwardsDirection = ((Vector3)nearest - localPosition).normalized;
+                float inwardsMagnitude = constantInForce + squareDistanceInForce * distance * distance;
+
+                // help prevent being flung out on sharp corners
+                Vector3 centripetalDirection = Vector3.zero;
+                float centripetalForce = 0;
+                if (applyCentripetalForce)
+                {
+                    Vector3 curvatureCentre = _splineContainer.Spline.EvaluateCurvatureCenter(t);
+                    Vector3 curvatureVector = curvatureCentre - localPosition;
+                    centripetalDirection = curvatureVector.normalized;
+                    centripetalForce = System.MathF.Pow(Vector3.Dot(localVelocity, forwardDirection), 2) / curvatureVector.magnitude;
+                }
+
+                Vector3 localForce = forwardDirection * forwardMagnitude + inwardsDirection * inwardsMagnitude + centripetalDirection * centripetalForce;
+
+                force = _splineContainer.transform.TransformVector(localForce);
+
+                // for gizmos
+                _lastCalcedPosition = position;
+                _lastCalcedForce = force;
+
+                return true;
+            },
+
+            onActive = delegate (PlayerController pc)
             {
-                Vector3 curvatureCentre = _splineContainer.Spline.EvaluateCurvatureCenter(t);
-                Vector3 curvatureVector = curvatureCentre - localPosition;
-                centripetalDirection = curvatureVector.normalized;
-                centripetalForce = System.MathF.Pow(Vector3.Dot(localVelocity, forwardDirection), 2) / curvatureVector.magnitude;
-            }
-
-            Vector3 localForce = forwardDirection * forwardMagnitude + inwardsDirection * inwardsMagnitude + centripetalDirection * centripetalForce;
-
-            force = _splineContainer.transform.TransformVector(localForce);
-
-            // for gizmos
-            _lastCalcedPosition = position;
-            _lastCalcedForce = force;
-
-            return true;
+            },
+            onInactive = delegate (PlayerController pc)
+            {
+            },
         };
     }
 
@@ -98,9 +108,9 @@ public class WaterCurrent : MonoBehaviour
         foreach (PlayerController player in FindObjectsByType<PlayerController>(FindObjectsSortMode.None))
         {
             if (RangeBounds.Contains(player.transform.position))
-                player.EnterForceFieldRange(_calcForceField);
+                player.EnterForceFieldRange(_forceField);
             else
-                player.ExitForceFieldRange(_calcForceField);
+                player.ExitForceFieldRange(_forceField);
         }
     }
 
