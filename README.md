@@ -1,3 +1,16 @@
+# Game Information
+
+Name: Generic Underwater Platformer (GUP)
+
+Make sure to use the options menu to tune the graphics quality/mouse sensitivity as required.
+
+## Controls
+- Escape/Tab - pause (+ change options)
+- WASD - move
+- mouse - look
+- E - magnetise (only to metallic platforms and only when they are sideways)
+- Left Shift - sprint
+
 # External Assets Used
 
 ## Sounds
